@@ -1,7 +1,7 @@
 import { execFile } from "child_process"
 import { promisify } from "util"
 
-import type { VideoFormat, VideoInfo } from "../shared/types"
+import type { ResolveOptions, VideoFormat, VideoInfo } from "../shared/types"
 
 import { ensureYtDlp } from "./binaries"
 
@@ -28,6 +28,7 @@ type RawFormat = {
 /** Resolve a YouTube URL to its title, thumbnail, and available formats. */
 export async function resolve(
   url: string,
+  options?: ResolveOptions,
   onSetupProgress?: (percent: number) => void
 ): Promise<VideoInfo> {
   if (!isYouTubeUrl(url)) {
@@ -36,11 +37,15 @@ export async function resolve(
 
   const bin = await ensureYtDlp(onSetupProgress)
 
-  const { stdout } = await execFileAsync(
-    bin,
-    ["-J", "--no-warnings", "--no-playlist", url],
-    { maxBuffer: 64 * 1024 * 1024 }
-  )
+  const args = ["-J", "--no-warnings", "--no-playlist"]
+  if (options?.cookiesBrowser && options.cookiesBrowser !== "none") {
+    args.push("--cookies-from-browser", options.cookiesBrowser)
+  }
+  args.push(url)
+
+  const { stdout } = await execFileAsync(bin, args, {
+    maxBuffer: 64 * 1024 * 1024,
+  })
 
   const data = JSON.parse(stdout) as {
     id: string

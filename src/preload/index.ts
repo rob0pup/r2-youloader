@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron"
 
-import type { VideoInfo } from "../shared/types"
+import type { ResolveOptions, VideoInfo } from "../shared/types"
 
 // The only surface the renderer can touch. Download + progress land here in
 // the next PRs.
@@ -8,8 +8,8 @@ const youloader = {
   appVersion: (): Promise<string> => ipcRenderer.invoke("app:version"),
 
   /** Resolve a YouTube URL to its info + available formats. */
-  resolve: (url: string): Promise<VideoInfo> =>
-    ipcRenderer.invoke("yt:resolve", url),
+  resolve: (url: string, options?: ResolveOptions): Promise<VideoInfo> =>
+    ipcRenderer.invoke("yt:resolve", url, options),
 
   /** First-run yt-dlp download progress (0-100). Returns an unsubscribe fn. */
   onSetupProgress: (cb: (percent: number) => void): (() => void) => {

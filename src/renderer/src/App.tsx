@@ -1,6 +1,8 @@
 import { DownloadIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import type { CookiesBrowser } from "../../shared/types"
+
 import { LogoMark } from "@/components/logo-mark"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -9,12 +11,23 @@ import { formatBytes, formatDuration } from "@/lib/format"
 type VideoInfo = Awaited<ReturnType<Window["youloader"]["resolve"]>>
 type Status = "idle" | "resolving" | "done" | "error"
 
+const BROWSERS: { value: CookiesBrowser; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "chrome", label: "Chrome" },
+  { value: "edge", label: "Edge" },
+  { value: "firefox", label: "Firefox" },
+  { value: "brave", label: "Brave" },
+  { value: "opera", label: "Opera" },
+  { value: "vivaldi", label: "Vivaldi" },
+]
+
 function App(): React.JSX.Element {
   const [url, setUrl] = useState("")
   const [status, setStatus] = useState<Status>("idle")
   const [info, setInfo] = useState<VideoInfo | null>(null)
   const [error, setError] = useState("")
   const [setupPercent, setSetupPercent] = useState(0)
+  const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>("none")
 
   useEffect(() => {
     return window.youloader.onSetupProgress(setSetupPercent)
@@ -27,11 +40,20 @@ function App(): React.JSX.Element {
     setError("")
     setInfo(null)
     try {
-      const result = await window.youloader.resolve(url.trim())
+      const result = await window.youloader.resolve(url.trim(), {
+        cookiesBrowser,
+      })
       setInfo(result)
       setStatus("done")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not resolve that link.")
+      const msg =
+        err instanceof Error ? err.message : "Could not resolve that link."
+      const botGate = /not a bot|sign in to confirm/i.test(msg)
+      setError(
+        botGate
+          ? "YouTube wants to confirm you're a real person. Pick the browser you're signed into YouTube on (below) and Resolve again."
+          : msg
+      )
       setStatus("error")
     } finally {
       setSetupPercent(0)
@@ -79,6 +101,25 @@ function App(): React.JSX.Element {
             )}
           </Button>
         </form>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <label htmlFor="cookies">If a video is blocked, use cookies from</label>
+          <select
+            id="cookies"
+            value={cookiesBrowser}
+            onChange={(e) => setCookiesBrowser(e.target.value as CookiesBrowser)}
+            className="cursor-pointer rounded-md border border-border bg-card px-2 py-1 text-foreground outline-none focus-visible:border-ring"
+          >
+            {BROWSERS.map((b) => (
+              <option key={b.value} value={b.value}>
+                {b.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-muted-foreground/70">
+            (the browser you&apos;re signed into YouTube on)
+          </span>
+        </div>
 
         {status === "resolving" && setupPercent > 0 && setupPercent < 100 && (
           <p className="mt-3 text-sm text-muted-foreground">

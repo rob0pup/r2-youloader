@@ -2,6 +2,8 @@ import { join } from "path"
 
 import { app, BrowserWindow, ipcMain, shell } from "electron"
 
+import type { ResolveOptions } from "../shared/types"
+
 import { resolve as resolveVideo } from "./ytdlp"
 
 function createWindow(): void {
@@ -39,10 +41,12 @@ function createWindow(): void {
 app.whenReady().then(() => {
   ipcMain.handle("app:version", () => app.getVersion())
 
-  ipcMain.handle("yt:resolve", (event, url: string) =>
-    resolveVideo(url, (percent) =>
-      event.sender.send("yt:setup-progress", percent)
-    )
+  ipcMain.handle(
+    "yt:resolve",
+    (event, url: string, options?: ResolveOptions) =>
+      resolveVideo(url, options, (percent) =>
+        event.sender.send("yt:setup-progress", percent)
+      )
   )
 
   createWindow()

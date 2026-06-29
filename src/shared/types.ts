@@ -15,6 +15,22 @@ export type VideoFormat = {
   note: string | null
 }
 
+// When YouTube demands "sign in to confirm you're not a bot", yt-dlp can read
+// the user's logged-in cookies straight from their browser.
+export type CookiesBrowser =
+  | "none"
+  | "chrome"
+  | "edge"
+  | "firefox"
+  | "brave"
+  | "opera"
+  | "vivaldi"
+  | "chromium"
+
+export type ResolveOptions = {
+  cookiesBrowser?: CookiesBrowser
+}
+
 export type VideoInfo = {
   id: string
   title: string
