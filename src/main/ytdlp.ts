@@ -123,10 +123,8 @@ export async function download(
   onSetupProgress?: (percent: number) => void
 ): Promise<string> {
   const bin = await ensureYtDlp(onSetupProgress)
-  const outPath = join(
-    app.getPath("downloads"),
-    `${safeName(req.title)} [${req.label}].${req.container}`
-  )
+  const dir = req.downloadDir || app.getPath("downloads")
+  const outPath = join(dir, `${safeName(req.title)} [${req.label}].${req.container}`)
 
   const args = [
     "--js-runtimes",
@@ -145,12 +143,19 @@ export async function download(
     args.push("--cookies-from-browser", req.cookiesBrowser)
   }
 
-  let format = req.formatId
-  if (!req.isAudio && !req.hasAudio) {
-    format = `${req.formatId}+bestaudio`
-    args.push("--merge-output-format", "mp4")
+  if (req.extractMp3) {
+    args.push("-x", "--audio-format", "mp3", "--audio-quality", "0", "-f", "ba/b")
+  } else if (req.isAudio) {
+    args.push("-f", req.formatId)
+  } else {
+    let format = req.formatId
+    if (!req.hasAudio) {
+      format = `${req.formatId}+bestaudio`
+      args.push("--merge-output-format", "mp4")
+    }
+    args.push("-f", format)
   }
-  args.push("-f", format, req.url)
+  args.push(req.url)
 
   return new Promise<string>((resolve, reject) => {
     const proc = spawn(bin, args)
@@ -251,8 +256,9 @@ export async function downloadPlaylist(
 ): Promise<string> {
   const bin = await ensureYtDlp(onSetupProgress)
   const { selector, merge, audioOnly } = selectorForQuality(req.quality)
+  const dir = req.downloadDir || app.getPath("downloads")
   const outTemplate = join(
-    app.getPath("downloads"),
+    dir,
     "%(playlist_title|Playlist)s",
     "%(playlist_index)02d - %(title)s.%(ext)s"
   )
@@ -283,10 +289,9 @@ export async function downloadPlaylist(
 
   return new Promise<string>((resolve, reject) => {
     const proc = spawn(bin, args)
-    const downloads = app.getPath("downloads")
     let item = 1
     let total = 0
-    let folder = downloads
+    let folder = dir
     let lastError = ""
 
     const handle = (chunk: Buffer): void => {
@@ -297,7 +302,7 @@ export async function downloadPlaylist(
         total = parseInt(itemMatch[2], 10)
       }
       const dest = text.match(/\[download\] Destination: (.+)/)
-      if (dest && folder === downloads) folder = dirname(dest[1].trim())
+      if (dest && folder === dir) folder = dirname(dest[1].trim())
       if (/\[Merger\]|\[ExtractAudio\]/.test(text)) {
         onProgress({ item, total, percent: 100, merging: true })
         return

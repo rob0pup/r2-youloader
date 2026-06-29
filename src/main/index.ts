@@ -91,6 +91,16 @@ app.whenReady().then(() => {
     shell.showItemInFolder(path)
   })
 
+  ipcMain.handle("app:downloads-dir", () => app.getPath("downloads"))
+
+  ipcMain.handle("dialog:pick-folder", async () => {
+    const result = await dialog.showOpenDialog({
+      title: "Choose a download folder",
+      properties: ["openDirectory", "createDirectory"],
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
   ipcMain.handle("dialog:pick-cookies", async () => {
     const result = await dialog.showOpenDialog({
       title: "Select your cookies.txt",

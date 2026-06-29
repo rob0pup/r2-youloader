@@ -54,6 +54,10 @@ export type DownloadRequest = {
   container: string
   /** Human label used in the filename, e.g. "720p" or "Audio". */
   label: string
+  /** Extract best audio to MP3 (ignores formatId). */
+  extractMp3?: boolean
+  /** Destination folder; defaults to the OS Downloads folder. */
+  downloadDir?: string | null
   cookiesBrowser?: CookiesBrowser
   cookiesFile?: string | null
 }
@@ -78,6 +82,8 @@ export type PlaylistInfo = {
 export type PlaylistRequest = {
   url: string
   quality: QualityPreset
+  /** Destination folder; defaults to the OS Downloads folder. */
+  downloadDir?: string | null
   cookiesBrowser?: CookiesBrowser
   cookiesFile?: string | null
 }
