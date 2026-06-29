@@ -41,3 +41,26 @@ export type VideoInfo = {
   thumbnail: string | null
   formats: VideoFormat[]
 }
+
+export type DownloadRequest = {
+  url: string
+  title: string
+  formatId: string
+  /** True for audio-only rows. */
+  isAudio: boolean
+  /** Whether the chosen format already has audio (if not, we add bestaudio). */
+  hasAudio: boolean
+  /** Output container, e.g. "mp4" or "m4a". */
+  container: string
+  /** Human label used in the filename, e.g. "720p" or "Audio". */
+  label: string
+  cookiesBrowser?: CookiesBrowser
+  cookiesFile?: string | null
+}
+
+export type DownloadProgress = {
+  /** The format id this update is for. */
+  id: string
+  percent: number
+  merging?: boolean
+}

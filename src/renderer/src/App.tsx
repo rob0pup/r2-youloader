@@ -1,4 +1,10 @@
-import { DownloadIcon, Loader2Icon, TriangleAlertIcon } from "lucide-react"
+import {
+  CheckIcon,
+  DownloadIcon,
+  FolderOpenIcon,
+  Loader2Icon,
+  TriangleAlertIcon,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 
 import type { CookiesBrowser } from "../../shared/types"
@@ -10,6 +16,23 @@ import { formatBytes, formatDuration } from "@/lib/format"
 
 type VideoInfo = Awaited<ReturnType<Window["youloader"]["resolve"]>>
 type Status = "idle" | "resolving" | "done" | "error"
+
+type Option = {
+  formatId: string
+  label: string
+  sub: string
+  isAudio: boolean
+  hasAudio: boolean
+  container: string
+}
+
+type DownloadState = {
+  status: "downloading" | "done" | "error"
+  percent: number
+  merging?: boolean
+  path?: string
+  error?: string
+}
 
 const BROWSERS: { value: CookiesBrowser; label: string }[] = [
   { value: "none", label: "None" },
@@ -29,15 +52,23 @@ function App(): React.JSX.Element {
   const [setupPercent, setSetupPercent] = useState(0)
   const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>("none")
   const [cookiesFile, setCookiesFile] = useState<string | null>(null)
+  const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
+
+  useEffect(() => window.youloader.onSetupProgress(setSetupPercent), [])
+
+  useEffect(() => {
+    return window.youloader.onDownloadProgress(({ id, percent, merging }) => {
+      setDownloads((d) => ({
+        ...d,
+        [id]: { ...d[id], status: "downloading", percent, merging },
+      }))
+    })
+  }, [])
 
   async function importCookies(): Promise<void> {
     const path = await window.youloader.pickCookiesFile()
     if (path) setCookiesFile(path)
   }
-
-  useEffect(() => {
-    return window.youloader.onSetupProgress(setSetupPercent)
-  }, [])
 
   async function handleResolve(e: React.FormEvent): Promise<void> {
     e.preventDefault()
@@ -45,6 +76,7 @@ function App(): React.JSX.Element {
     setStatus("resolving")
     setError("")
     setInfo(null)
+    setDownloads({})
     try {
       const result = await window.youloader.resolve(url.trim(), {
         cookiesBrowser,
@@ -70,15 +102,71 @@ function App(): React.JSX.Element {
     }
   }
 
-  // One row per distinct resolution, plus audio-only options.
+  async function handleDownload(opt: Option): Promise<void> {
+    if (!info) return
+    setDownloads((d) => ({
+      ...d,
+      [opt.formatId]: { status: "downloading", percent: 0 },
+    }))
+    try {
+      const path = await window.youloader.download({
+        url: url.trim(),
+        title: info.title,
+        formatId: opt.formatId,
+        isAudio: opt.isAudio,
+        hasAudio: opt.hasAudio,
+        container: opt.container,
+        label: opt.label,
+        cookiesBrowser,
+        cookiesFile,
+      })
+      setDownloads((d) => ({
+        ...d,
+        [opt.formatId]: { status: "done", percent: 100, path },
+      }))
+    } catch (err) {
+      setDownloads((d) => ({
+        ...d,
+        [opt.formatId]: {
+          status: "error",
+          percent: 0,
+          error: err instanceof Error ? err.message : "Download failed",
+        },
+      }))
+    }
+  }
+
   const seen = new Set<number>()
-  const videoRows = (info?.formats ?? [])
+  const videoOptions: Option[] = (info?.formats ?? [])
     .filter((f) => f.height != null)
     .sort((a, b) => b.height! - a.height!)
     .filter((f) => (seen.has(f.height!) ? false : (seen.add(f.height!), true)))
-  const audioRows = (info?.formats ?? []).filter(
+    .map((f) => ({
+      formatId: f.id,
+      label: `${f.height}p`,
+      sub: `MP4 · ${formatBytes(f.filesize)}`,
+      isAudio: false,
+      hasAudio: f.hasAudio,
+      container: "mp4",
+    }))
+
+  const allAudio = (info?.formats ?? []).filter(
     (f) => f.height == null && f.hasAudio
   )
+  const m4a = allAudio.filter((f) => f.ext === "m4a")
+  const audioOptions: Option[] = (m4a.length ? m4a : allAudio)
+    .sort((a, b) => (b.filesize ?? 0) - (a.filesize ?? 0))
+    .slice(0, 2)
+    .map((f) => ({
+      formatId: f.id,
+      label: "Audio",
+      sub: `${f.ext.toUpperCase()} · ${formatBytes(f.filesize)}`,
+      isAudio: true,
+      hasAudio: true,
+      container: f.ext,
+    }))
+
+  const options = [...videoOptions, ...audioOptions]
 
   return (
     <main className="mx-auto flex min-h-svh max-w-3xl flex-col px-6">
@@ -116,7 +204,6 @@ function App(): React.JSX.Element {
           <div className="flex flex-wrap items-center gap-2">
             <span>If a video is blocked, sign in with cookies from</span>
             <select
-              id="cookies"
               value={cookiesBrowser}
               disabled={!!cookiesFile}
               onChange={(e) =>
@@ -158,8 +245,8 @@ function App(): React.JSX.Element {
         )}
 
         {status === "error" && (
-          <p className="mt-4 flex items-center gap-2 text-sm text-destructive">
-            <TriangleAlertIcon className="size-4 shrink-0" />
+          <p className="mt-4 flex items-start gap-2 text-sm text-destructive">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
             {error}
           </p>
         )}
@@ -190,24 +277,21 @@ function App(): React.JSX.Element {
                 Available formats
               </h2>
               <div className="divide-y divide-line overflow-hidden rounded-xl border border-border">
-                {videoRows.map((f) => (
+                {options.map((opt) => (
                   <FormatRow
-                    key={f.id}
-                    label={`${f.height}p${f.fps && f.fps > 30 ? ` ${f.fps}` : ""}`}
-                    meta={`${f.ext.toUpperCase()} · ${formatBytes(f.filesize)}`}
+                    key={opt.formatId}
+                    option={opt}
+                    state={downloads[opt.formatId]}
+                    onDownload={() => handleDownload(opt)}
+                    onShow={(p) => window.youloader.showInFolder(p)}
                   />
                 ))}
-                {audioRows.slice(0, 2).map((f) => (
-                  <FormatRow
-                    key={f.id}
-                    label="Audio"
-                    meta={`${f.ext.toUpperCase()} · ${formatBytes(f.filesize)}`}
-                  />
-                ))}
+                {options.length === 0 && (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                    No downloadable formats were returned for this video.
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Downloading lands in the next update.
-              </p>
             </section>
           </div>
         )}
@@ -221,26 +305,69 @@ function App(): React.JSX.Element {
 }
 
 function FormatRow({
-  label,
-  meta,
+  option,
+  state,
+  onDownload,
+  onShow,
 }: {
-  label: string
-  meta: string
+  option: Option
+  state: DownloadState | undefined
+  onDownload: () => void
+  onShow: (path: string) => void
 }): React.JSX.Element {
+  const downloading = state?.status === "downloading"
+  const done = state?.status === "done"
+  const errored = state?.status === "error"
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5">
-      <span className="text-sm font-medium">{label}</span>
-      <span className="text-xs text-muted-foreground">{meta}</span>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled
-        className="ml-auto"
-        title="Coming in the next update"
-      >
-        <DownloadIcon />
-        Download
-      </Button>
+    <div className="px-4 py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium">{option.label}</span>
+        <span className="text-xs text-muted-foreground">{option.sub}</span>
+
+        {done ? (
+          <button
+            type="button"
+            onClick={() => state?.path && onShow(state.path)}
+            className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+          >
+            <CheckIcon className="size-3.5" />
+            Saved
+            <FolderOpenIcon className="size-3.5" />
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            disabled={downloading}
+            onClick={onDownload}
+          >
+            {downloading ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <DownloadIcon />
+            )}
+            {downloading
+              ? state?.merging
+                ? "Merging…"
+                : `${Math.round(state?.percent ?? 0)}%`
+              : "Download"}
+          </Button>
+        )}
+      </div>
+
+      {downloading && (
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-foreground transition-[width] duration-200"
+            style={{ width: `${state?.merging ? 100 : (state?.percent ?? 0)}%` }}
+          />
+        </div>
+      )}
+      {errored && (
+        <p className="mt-1.5 text-xs text-destructive">{state?.error}</p>
+      )}
     </div>
   )
 }
