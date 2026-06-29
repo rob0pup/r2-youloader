@@ -26,6 +26,7 @@ type Option = {
   isAudio: boolean
   hasAudio: boolean
   container: string
+  extractMp3?: boolean
 }
 type DownloadState = {
   status: "downloading" | "done" | "error"
@@ -74,10 +75,18 @@ function App(): React.JSX.Element {
   const [playlist, setPlaylist] = useState<PlaylistInfo | null>(null)
   const [error, setError] = useState("")
   const [setupPercent, setSetupPercent] = useState(0)
-  const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>("none")
+  const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>(
+    () => (localStorage.getItem("youloader.cookiesBrowser") as CookiesBrowser) || "none"
+  )
   const [cookiesFile, setCookiesFile] = useState<string | null>(null)
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
-  const [quality, setQuality] = useState<QualityPreset>("best")
+  const [quality, setQuality] = useState<QualityPreset>(
+    () => (localStorage.getItem("youloader.quality") as QualityPreset) || "best"
+  )
+  const [downloadDir, setDownloadDir] = useState<string>(
+    () => localStorage.getItem("youloader.downloadDir") || ""
+  )
+  const [defaultDir, setDefaultDir] = useState<string>("")
   const [pl, setPl] = useState<PlaylistDL>({
     status: "idle",
     item: 0,
@@ -86,6 +95,19 @@ function App(): React.JSX.Element {
   })
 
   useEffect(() => window.youloader.onSetupProgress(setSetupPercent), [])
+
+  useEffect(() => {
+    window.youloader.downloadsDir().then(setDefaultDir)
+  }, [])
+  useEffect(() => {
+    localStorage.setItem("youloader.cookiesBrowser", cookiesBrowser)
+  }, [cookiesBrowser])
+  useEffect(() => {
+    localStorage.setItem("youloader.quality", quality)
+  }, [quality])
+  useEffect(() => {
+    localStorage.setItem("youloader.downloadDir", downloadDir)
+  }, [downloadDir])
 
   useEffect(() => {
     return window.youloader.onDownloadProgress(({ id, percent, merging }) => {
@@ -163,6 +185,8 @@ function App(): React.JSX.Element {
         hasAudio: opt.hasAudio,
         container: opt.container,
         label: opt.label,
+        extractMp3: opt.extractMp3,
+        downloadDir: downloadDir || null,
         ...cookieOpts,
       })
       setDownloads((d) => ({
@@ -187,6 +211,7 @@ function App(): React.JSX.Element {
       const folder = await window.youloader.downloadPlaylist({
         url: url.trim(),
         quality,
+        downloadDir: downloadDir || null,
         ...cookieOpts,
       })
       setPl((cur) => ({ ...cur, status: "done", folder }))
@@ -216,17 +241,35 @@ function App(): React.JSX.Element {
     (f) => f.height == null && f.hasAudio
   )
   const m4a = allAudio.filter((f) => f.ext === "m4a")
-  const audioOptions: Option[] = (m4a.length ? m4a : allAudio)
-    .sort((a, b) => (b.filesize ?? 0) - (a.filesize ?? 0))
-    .slice(0, 2)
-    .map((f) => ({
-      formatId: f.id,
-      label: "Audio",
-      sub: `${f.ext.toUpperCase()} · ${formatBytes(f.filesize)}`,
-      isAudio: true,
-      hasAudio: true,
-      container: f.ext,
-    }))
+  const bestAudio = (m4a.length ? m4a : allAudio).sort(
+    (a, b) => (b.filesize ?? 0) - (a.filesize ?? 0)
+  )[0]
+  const audioOptions: Option[] =
+    allAudio.length > 0
+      ? [
+          {
+            formatId: "audio-mp3",
+            label: "MP3",
+            sub: "best audio, converted",
+            isAudio: true,
+            hasAudio: true,
+            container: "mp3",
+            extractMp3: true,
+          },
+          ...(bestAudio
+            ? [
+                {
+                  formatId: bestAudio.id,
+                  label: bestAudio.ext.toUpperCase(),
+                  sub: formatBytes(bestAudio.filesize),
+                  isAudio: true,
+                  hasAudio: true,
+                  container: bestAudio.ext,
+                },
+              ]
+            : []),
+        ]
+      : []
   const options = [...videoOptions, ...audioOptions]
 
   const plOverall =
@@ -267,6 +310,34 @@ function App(): React.JSX.Element {
         </form>
 
         <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Save to</span>
+            <span
+              className="max-w-[24rem] truncate text-foreground"
+              title={downloadDir || defaultDir}
+            >
+              {downloadDir || defaultDir || "Downloads"}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const f = await window.youloader.pickFolder()
+                if (f) setDownloadDir(f)
+              }}
+            >
+              Change
+            </Button>
+            {downloadDir && (
+              <button
+                type="button"
+                onClick={() => setDownloadDir("")}
+                className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+              >
+                reset
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <span>If a video is blocked, sign in with cookies from</span>
             <select

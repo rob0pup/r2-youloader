@@ -51,6 +51,13 @@ const youloader = {
   showInFolder: (path: string): Promise<void> =>
     ipcRenderer.invoke("shell:show-item", path),
 
+  /** The OS Downloads folder (the default save location). */
+  downloadsDir: (): Promise<string> => ipcRenderer.invoke("app:downloads-dir"),
+
+  /** Open a folder picker for the download location. */
+  pickFolder: (): Promise<string | null> =>
+    ipcRenderer.invoke("dialog:pick-folder"),
+
   /** Open a file dialog to choose an exported cookies.txt. */
   pickCookiesFile: (): Promise<string | null> =>
     ipcRenderer.invoke("dialog:pick-cookies"),
