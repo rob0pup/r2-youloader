@@ -2,12 +2,13 @@ import {
   CheckIcon,
   DownloadIcon,
   FolderOpenIcon,
+  ListVideoIcon,
   Loader2Icon,
   TriangleAlertIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import type { CookiesBrowser } from "../../shared/types"
+import type { CookiesBrowser, QualityPreset } from "../../shared/types"
 
 import { LogoMark } from "@/components/logo-mark"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -15,7 +16,8 @@ import { Button } from "@/components/ui/button"
 import { formatBytes, formatDuration } from "@/lib/format"
 
 type VideoInfo = Awaited<ReturnType<Window["youloader"]["resolve"]>>
-type Status = "idle" | "resolving" | "done" | "error"
+type PlaylistInfo = Awaited<ReturnType<Window["youloader"]["resolvePlaylist"]>>
+type Status = "idle" | "resolving" | "video" | "playlist" | "error"
 
 type Option = {
   formatId: string
@@ -25,12 +27,20 @@ type Option = {
   hasAudio: boolean
   container: string
 }
-
 type DownloadState = {
   status: "downloading" | "done" | "error"
   percent: number
   merging?: boolean
   path?: string
+  error?: string
+}
+type PlaylistDL = {
+  status: "idle" | "downloading" | "done" | "error"
+  item: number
+  total: number
+  percent: number
+  merging?: boolean
+  folder?: string
   error?: string
 }
 
@@ -44,15 +54,36 @@ const BROWSERS: { value: CookiesBrowser; label: string }[] = [
   { value: "vivaldi", label: "Vivaldi" },
 ]
 
+const QUALITIES: { value: QualityPreset; label: string }[] = [
+  { value: "best", label: "Best" },
+  { value: "1080p", label: "1080p" },
+  { value: "720p", label: "720p" },
+  { value: "480p", label: "480p" },
+  { value: "audio", label: "Audio (MP3)" },
+]
+
+function isPlaylistUrl(url: string): boolean {
+  const u = url.trim()
+  return /[?&]list=/.test(u) && (/\/playlist\?/.test(u) || !/[?&]v=/.test(u))
+}
+
 function App(): React.JSX.Element {
   const [url, setUrl] = useState("")
   const [status, setStatus] = useState<Status>("idle")
   const [info, setInfo] = useState<VideoInfo | null>(null)
+  const [playlist, setPlaylist] = useState<PlaylistInfo | null>(null)
   const [error, setError] = useState("")
   const [setupPercent, setSetupPercent] = useState(0)
   const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>("none")
   const [cookiesFile, setCookiesFile] = useState<string | null>(null)
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
+  const [quality, setQuality] = useState<QualityPreset>("best")
+  const [pl, setPl] = useState<PlaylistDL>({
+    status: "idle",
+    item: 0,
+    total: 0,
+    percent: 0,
+  })
 
   useEffect(() => window.youloader.onSetupProgress(setSetupPercent), [])
 
@@ -65,9 +96,25 @@ function App(): React.JSX.Element {
     })
   }, [])
 
+  useEffect(() => {
+    return window.youloader.onPlaylistProgress((p) => {
+      setPl((cur) => ({ ...cur, ...p, status: "downloading" }))
+    })
+  }, [])
+
+  const cookieOpts = { cookiesBrowser, cookiesFile }
+
   async function importCookies(): Promise<void> {
     const path = await window.youloader.pickCookiesFile()
     if (path) setCookiesFile(path)
+  }
+
+  function describeError(msg: string): string {
+    if (/not a bot|sign in to confirm/i.test(msg))
+      return "YouTube wants to confirm you're a real person. Pick the browser you're signed into YouTube on below, or import a cookies.txt, then try again."
+    if (/could not copy|cookie database/i.test(msg))
+      return "That browser locks its cookies while it's open. Fully quit it and retry, pick a different browser, or import a cookies.txt (most reliable)."
+    return msg
   }
 
   async function handleResolve(e: React.FormEvent): Promise<void> {
@@ -76,25 +123,24 @@ function App(): React.JSX.Element {
     setStatus("resolving")
     setError("")
     setInfo(null)
+    setPlaylist(null)
     setDownloads({})
+    setPl({ status: "idle", item: 0, total: 0, percent: 0 })
     try {
-      const result = await window.youloader.resolve(url.trim(), {
-        cookiesBrowser,
-        cookiesFile,
-      })
-      setInfo(result)
-      setStatus("done")
+      if (isPlaylistUrl(url)) {
+        const result = await window.youloader.resolvePlaylist(url.trim(), cookieOpts)
+        setPlaylist(result)
+        setStatus("playlist")
+      } else {
+        const result = await window.youloader.resolve(url.trim(), cookieOpts)
+        setInfo(result)
+        setStatus("video")
+      }
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Could not resolve that link."
-      const botGate = /not a bot|sign in to confirm/i.test(msg)
-      const cookieLock = /could not copy|cookie database/i.test(msg)
       setError(
-        botGate
-          ? "YouTube wants to confirm you're a real person. Pick the browser you're signed into YouTube on below, or import a cookies.txt, then Resolve again."
-          : cookieLock
-            ? "That browser locks its cookies while it's open. Fully quit it and retry, pick a different browser, or import a cookies.txt (most reliable)."
-            : msg
+        describeError(
+          err instanceof Error ? err.message : "Could not resolve that link."
+        )
       )
       setStatus("error")
     } finally {
@@ -117,8 +163,7 @@ function App(): React.JSX.Element {
         hasAudio: opt.hasAudio,
         container: opt.container,
         label: opt.label,
-        cookiesBrowser,
-        cookiesFile,
+        ...cookieOpts,
       })
       setDownloads((d) => ({
         ...d,
@@ -136,6 +181,24 @@ function App(): React.JSX.Element {
     }
   }
 
+  async function handleDownloadPlaylist(): Promise<void> {
+    setPl({ status: "downloading", item: 0, total: playlist?.count ?? 0, percent: 0 })
+    try {
+      const folder = await window.youloader.downloadPlaylist({
+        url: url.trim(),
+        quality,
+        ...cookieOpts,
+      })
+      setPl((cur) => ({ ...cur, status: "done", folder }))
+    } catch (err) {
+      setPl((cur) => ({
+        ...cur,
+        status: "error",
+        error: err instanceof Error ? err.message : "Playlist download failed",
+      }))
+    }
+  }
+
   const seen = new Set<number>()
   const videoOptions: Option[] = (info?.formats ?? [])
     .filter((f) => f.height != null)
@@ -149,7 +212,6 @@ function App(): React.JSX.Element {
       hasAudio: f.hasAudio,
       container: "mp4",
     }))
-
   const allAudio = (info?.formats ?? []).filter(
     (f) => f.height == null && f.hasAudio
   )
@@ -165,8 +227,12 @@ function App(): React.JSX.Element {
       hasAudio: true,
       container: f.ext,
     }))
-
   const options = [...videoOptions, ...audioOptions]
+
+  const plOverall =
+    pl.total > 0
+      ? Math.min(100, ((pl.item - 1 + pl.percent / 100) / pl.total) * 100)
+      : pl.percent
 
   return (
     <main className="mx-auto flex min-h-svh max-w-3xl flex-col px-6">
@@ -184,7 +250,7 @@ function App(): React.JSX.Element {
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste a YouTube link…"
+            placeholder="Paste a YouTube video or playlist link…"
             autoFocus
             className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 placeholder:text-muted-foreground"
           />
@@ -251,7 +317,7 @@ function App(): React.JSX.Element {
           </p>
         )}
 
-        {status === "done" && info && (
+        {status === "video" && info && (
           <div className="mt-6 space-y-5">
             <div className="flex gap-4">
               {info.thumbnail && (
@@ -292,6 +358,103 @@ function App(): React.JSX.Element {
                   </p>
                 )}
               </div>
+            </section>
+          </div>
+        )}
+
+        {status === "playlist" && playlist && (
+          <div className="mt-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
+                <ListVideoIcon className="size-5 text-muted-foreground" />
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-semibold">{playlist.title}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {playlist.count} videos
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3">
+              <span className="text-xs font-medium text-muted-foreground">
+                Quality
+              </span>
+              <select
+                value={quality}
+                onChange={(e) => setQuality(e.target.value as QualityPreset)}
+                disabled={pl.status === "downloading"}
+                className="cursor-pointer rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus-visible:border-ring disabled:opacity-50"
+              >
+                {QUALITIES.map((q) => (
+                  <option key={q.value} value={q.value}>
+                    {q.label}
+                  </option>
+                ))}
+              </select>
+
+              {pl.status === "done" ? (
+                <button
+                  type="button"
+                  onClick={() => pl.folder && window.youloader.showInFolder(pl.folder)}
+                  className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400"
+                >
+                  <CheckIcon className="size-4" />
+                  Saved
+                  <FolderOpenIcon className="size-4" />
+                </button>
+              ) : (
+                <Button
+                  className="ml-auto"
+                  disabled={pl.status === "downloading"}
+                  onClick={handleDownloadPlaylist}
+                >
+                  {pl.status === "downloading" ? (
+                    <>
+                      <Loader2Icon className="animate-spin" />
+                      {pl.merging
+                        ? "Merging…"
+                        : `Item ${pl.item}/${pl.total} · ${Math.round(pl.percent)}%`}
+                    </>
+                  ) : (
+                    <>
+                      <DownloadIcon />
+                      Download all
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {pl.status === "downloading" && (
+              <div className="h-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-foreground transition-[width] duration-200"
+                  style={{ width: `${plOverall}%` }}
+                />
+              </div>
+            )}
+            {pl.status === "error" && (
+              <p className="text-sm text-destructive">{pl.error}</p>
+            )}
+
+            <section className="space-y-2">
+              <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Videos
+              </h2>
+              <ol className="max-h-72 divide-y divide-line overflow-y-auto rounded-xl border border-border">
+                {playlist.entries.map((entry, i) => (
+                  <li
+                    key={entry.id}
+                    className="flex gap-3 px-4 py-2.5 text-sm"
+                  >
+                    <span className="w-6 shrink-0 text-right tabular-nums text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <span className="truncate">{entry.title}</span>
+                  </li>
+                ))}
+              </ol>
             </section>
           </div>
         )}
