@@ -2,9 +2,9 @@ import { join } from "path"
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron"
 
-import type { ResolveOptions } from "../shared/types"
+import type { DownloadRequest, ResolveOptions } from "../shared/types"
 
-import { resolve as resolveVideo } from "./ytdlp"
+import { download as downloadVideo, resolve as resolveVideo } from "./ytdlp"
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -48,6 +48,23 @@ app.whenReady().then(() => {
         event.sender.send("yt:setup-progress", percent)
       )
   )
+
+  ipcMain.handle("yt:download", (event, req: DownloadRequest) =>
+    downloadVideo(
+      req,
+      (percent, merging) =>
+        event.sender.send("yt:download-progress", {
+          id: req.formatId,
+          percent,
+          merging,
+        }),
+      (percent) => event.sender.send("yt:setup-progress", percent)
+    )
+  )
+
+  ipcMain.handle("shell:show-item", (_event, path: string) => {
+    shell.showItemInFolder(path)
+  })
 
   ipcMain.handle("dialog:pick-cookies", async () => {
     const result = await dialog.showOpenDialog({

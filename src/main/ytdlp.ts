@@ -1,9 +1,18 @@
-import { execFile } from "child_process"
+import { execFile, spawn } from "child_process"
+import { join } from "path"
 import { promisify } from "util"
 
-import type { ResolveOptions, VideoFormat, VideoInfo } from "../shared/types"
+import { app } from "electron"
+
+import type {
+  DownloadRequest,
+  ResolveOptions,
+  VideoFormat,
+  VideoInfo,
+} from "../shared/types"
 
 import { ensureYtDlp } from "./binaries"
+import { ffmpegPath } from "./ffmpeg"
 
 const execFileAsync = promisify(execFile)
 
@@ -92,4 +101,81 @@ export async function resolve(
     thumbnail: data.thumbnail ?? null,
     formats,
   }
+}
+
+function safeName(title: string): string {
+  return (
+    title
+      .replace(/[<>:"/\\|?*\n\r\t]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120) || "video"
+  )
+}
+
+/** Download the chosen format to the Downloads folder. Resolves with the path. */
+export async function download(
+  req: DownloadRequest,
+  onProgress: (percent: number, merging: boolean) => void,
+  onSetupProgress?: (percent: number) => void
+): Promise<string> {
+  const bin = await ensureYtDlp(onSetupProgress)
+  const outPath = join(
+    app.getPath("downloads"),
+    `${safeName(req.title)} [${req.label}].${req.container}`
+  )
+
+  const args = [
+    "--js-runtimes",
+    "node",
+    "--ffmpeg-location",
+    ffmpegPath(),
+    "--no-warnings",
+    "--no-playlist",
+    "--newline",
+    "-o",
+    outPath,
+  ]
+  if (req.cookiesFile) {
+    args.push("--cookies", req.cookiesFile)
+  } else if (req.cookiesBrowser && req.cookiesBrowser !== "none") {
+    args.push("--cookies-from-browser", req.cookiesBrowser)
+  }
+
+  let format = req.formatId
+  if (!req.isAudio && !req.hasAudio) {
+    format = `${req.formatId}+bestaudio`
+    args.push("--merge-output-format", "mp4")
+  }
+  args.push("-f", format, req.url)
+
+  return new Promise<string>((resolve, reject) => {
+    const proc = spawn(bin, args)
+    let lastError = ""
+
+    const handle = (chunk: Buffer): void => {
+      const text = chunk.toString()
+      if (/\[Merger\]/.test(text)) {
+        onProgress(100, true)
+        return
+      }
+      const match = text.match(/\[download\]\s+([\d.]+)%/)
+      if (match) onProgress(Math.min(100, parseFloat(match[1])), false)
+      if (/ERROR:/i.test(text)) lastError = text.trim()
+    }
+
+    proc.stdout.on("data", handle)
+    proc.stderr.on("data", handle)
+    proc.on("error", reject)
+    proc.on("close", (code) => {
+      if (code === 0) resolve(outPath)
+      else
+        reject(
+          new Error(
+            lastError.replace(/^ERROR:\s*/i, "") ||
+              `Download failed (code ${code})`
+          )
+        )
+    })
+  })
 }
