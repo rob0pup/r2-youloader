@@ -2,6 +2,8 @@ import { join } from "path"
 
 import { app, BrowserWindow, ipcMain, shell } from "electron"
 
+import { resolve as resolveVideo } from "./ytdlp"
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 920,
@@ -36,6 +38,12 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   ipcMain.handle("app:version", () => app.getVersion())
+
+  ipcMain.handle("yt:resolve", (event, url: string) =>
+    resolveVideo(url, (percent) =>
+      event.sender.send("yt:setup-progress", percent)
+    )
+  )
 
   createWindow()
 
