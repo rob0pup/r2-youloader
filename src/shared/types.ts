@@ -64,3 +64,28 @@ export type DownloadProgress = {
   percent: number
   merging?: boolean
 }
+
+export type QualityPreset = "best" | "1080p" | "720p" | "480p" | "audio"
+
+export type PlaylistEntry = { id: string; title: string }
+
+export type PlaylistInfo = {
+  title: string
+  count: number
+  entries: PlaylistEntry[]
+}
+
+export type PlaylistRequest = {
+  url: string
+  quality: QualityPreset
+  cookiesBrowser?: CookiesBrowser
+  cookiesFile?: string | null
+}
+
+export type PlaylistProgress = {
+  item: number
+  total: number
+  /** Percent of the current item. */
+  percent: number
+  merging?: boolean
+}

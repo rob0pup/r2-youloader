@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from "electron"
 import type {
   DownloadProgress,
   DownloadRequest,
+  PlaylistInfo,
+  PlaylistProgress,
+  PlaylistRequest,
   ResolveOptions,
   VideoInfo,
 } from "../shared/types"
@@ -25,6 +28,23 @@ const youloader = {
     const listener = (_: unknown, p: DownloadProgress): void => cb(p)
     ipcRenderer.on("yt:download-progress", listener)
     return () => ipcRenderer.removeListener("yt:download-progress", listener)
+  },
+
+  /** List a playlist's entries (flat). */
+  resolvePlaylist: (
+    url: string,
+    options?: ResolveOptions
+  ): Promise<PlaylistInfo> => ipcRenderer.invoke("yt:resolve-playlist", url, options),
+
+  /** Download a whole playlist at one quality. Resolves with the folder. */
+  downloadPlaylist: (req: PlaylistRequest): Promise<string> =>
+    ipcRenderer.invoke("yt:download-playlist", req),
+
+  /** Playlist download progress. Returns an unsubscribe fn. */
+  onPlaylistProgress: (cb: (p: PlaylistProgress) => void): (() => void) => {
+    const listener = (_: unknown, p: PlaylistProgress): void => cb(p)
+    ipcRenderer.on("yt:playlist-progress", listener)
+    return () => ipcRenderer.removeListener("yt:playlist-progress", listener)
   },
 
   /** Reveal a downloaded file in the OS file manager. */

@@ -2,9 +2,18 @@ import { join } from "path"
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron"
 
-import type { DownloadRequest, ResolveOptions } from "../shared/types"
+import type {
+  DownloadRequest,
+  PlaylistRequest,
+  ResolveOptions,
+} from "../shared/types"
 
-import { download as downloadVideo, resolve as resolveVideo } from "./ytdlp"
+import {
+  download as downloadVideo,
+  downloadPlaylist,
+  resolve as resolveVideo,
+  resolvePlaylist,
+} from "./ytdlp"
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -58,6 +67,22 @@ app.whenReady().then(() => {
           percent,
           merging,
         }),
+      (percent) => event.sender.send("yt:setup-progress", percent)
+    )
+  )
+
+  ipcMain.handle(
+    "yt:resolve-playlist",
+    (event, url: string, options?: ResolveOptions) =>
+      resolvePlaylist(url, options, (percent) =>
+        event.sender.send("yt:setup-progress", percent)
+      )
+  )
+
+  ipcMain.handle("yt:download-playlist", (event, req: PlaylistRequest) =>
+    downloadPlaylist(
+      req,
+      (p) => event.sender.send("yt:playlist-progress", p),
       (percent) => event.sender.send("yt:setup-progress", percent)
     )
   )
