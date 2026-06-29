@@ -37,13 +37,18 @@ export async function resolve(
 
   const bin = await ensureYtDlp(onSetupProgress)
 
-  // --ignore-no-formats-error so we still get the video's info even when
-  // YouTube's default format selection comes up empty (SABR / gated formats).
+  // --js-runtimes node: YouTube obfuscates format URLs with a JS "n challenge".
+  //   yt-dlp's bundled solver needs a JS runtime; we point it at Node. Without
+  //   this, only storyboard images come back.
+  // --ignore-no-formats-error: still return the video's info even if format
+  //   selection comes up empty.
   const args = [
     "-J",
     "--no-warnings",
     "--no-playlist",
     "--ignore-no-formats-error",
+    "--js-runtimes",
+    "node",
   ]
   if (options?.cookiesFile) {
     args.push("--cookies", options.cookiesFile)
