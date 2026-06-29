@@ -28,6 +28,12 @@ function App(): React.JSX.Element {
   const [error, setError] = useState("")
   const [setupPercent, setSetupPercent] = useState(0)
   const [cookiesBrowser, setCookiesBrowser] = useState<CookiesBrowser>("none")
+  const [cookiesFile, setCookiesFile] = useState<string | null>(null)
+
+  async function importCookies(): Promise<void> {
+    const path = await window.youloader.pickCookiesFile()
+    if (path) setCookiesFile(path)
+  }
 
   useEffect(() => {
     return window.youloader.onSetupProgress(setSetupPercent)
@@ -42,6 +48,7 @@ function App(): React.JSX.Element {
     try {
       const result = await window.youloader.resolve(url.trim(), {
         cookiesBrowser,
+        cookiesFile,
       })
       setInfo(result)
       setStatus("done")
@@ -49,10 +56,13 @@ function App(): React.JSX.Element {
       const msg =
         err instanceof Error ? err.message : "Could not resolve that link."
       const botGate = /not a bot|sign in to confirm/i.test(msg)
+      const cookieLock = /could not copy|cookie database/i.test(msg)
       setError(
         botGate
-          ? "YouTube wants to confirm you're a real person. Pick the browser you're signed into YouTube on (below) and Resolve again."
-          : msg
+          ? "YouTube wants to confirm you're a real person. Pick the browser you're signed into YouTube on below, or import a cookies.txt, then Resolve again."
+          : cookieLock
+            ? "That browser locks its cookies while it's open. Fully quit it and retry, pick a different browser, or import a cookies.txt (most reliable)."
+            : msg
       )
       setStatus("error")
     } finally {
@@ -102,23 +112,43 @@ function App(): React.JSX.Element {
           </Button>
         </form>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <label htmlFor="cookies">If a video is blocked, use cookies from</label>
-          <select
-            id="cookies"
-            value={cookiesBrowser}
-            onChange={(e) => setCookiesBrowser(e.target.value as CookiesBrowser)}
-            className="cursor-pointer rounded-md border border-border bg-card px-2 py-1 text-foreground outline-none focus-visible:border-ring"
-          >
-            {BROWSERS.map((b) => (
-              <option key={b.value} value={b.value}>
-                {b.label}
-              </option>
-            ))}
-          </select>
-          <span className="text-muted-foreground/70">
-            (the browser you&apos;re signed into YouTube on)
-          </span>
+        <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>If a video is blocked, sign in with cookies from</span>
+            <select
+              id="cookies"
+              value={cookiesBrowser}
+              disabled={!!cookiesFile}
+              onChange={(e) =>
+                setCookiesBrowser(e.target.value as CookiesBrowser)
+              }
+              className="cursor-pointer rounded-md border border-border bg-card px-2 py-1 text-foreground outline-none focus-visible:border-ring disabled:opacity-50"
+            >
+              {BROWSERS.map((b) => (
+                <option key={b.value} value={b.value}>
+                  {b.label}
+                </option>
+              ))}
+            </select>
+            <span>or</span>
+            <Button variant="outline" size="sm" onClick={importCookies}>
+              Import cookies.txt
+            </Button>
+          </div>
+          {cookiesFile && (
+            <div className="flex items-center gap-2">
+              <span className="text-foreground">
+                Using {cookiesFile.split(/[\\/]/).pop()}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCookiesFile(null)}
+                className="cursor-pointer underline underline-offset-2 hover:text-foreground"
+              >
+                clear
+              </button>
+            </div>
+          )}
         </div>
 
         {status === "resolving" && setupPercent > 0 && setupPercent < 100 && (

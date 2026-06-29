@@ -29,6 +29,8 @@ export type CookiesBrowser =
 
 export type ResolveOptions = {
   cookiesBrowser?: CookiesBrowser
+  /** Path to an exported cookies.txt; takes precedence over cookiesBrowser. */
+  cookiesFile?: string | null
 }
 
 export type VideoInfo = {

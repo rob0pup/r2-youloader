@@ -38,7 +38,9 @@ export async function resolve(
   const bin = await ensureYtDlp(onSetupProgress)
 
   const args = ["-J", "--no-warnings", "--no-playlist"]
-  if (options?.cookiesBrowser && options.cookiesBrowser !== "none") {
+  if (options?.cookiesFile) {
+    args.push("--cookies", options.cookiesFile)
+  } else if (options?.cookiesBrowser && options.cookiesBrowser !== "none") {
     args.push("--cookies-from-browser", options.cookiesBrowser)
   }
   args.push(url)

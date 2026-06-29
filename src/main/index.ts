@@ -1,6 +1,6 @@
 import { join } from "path"
 
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron"
 
 import type { ResolveOptions } from "../shared/types"
 
@@ -48,6 +48,15 @@ app.whenReady().then(() => {
         event.sender.send("yt:setup-progress", percent)
       )
   )
+
+  ipcMain.handle("dialog:pick-cookies", async () => {
+    const result = await dialog.showOpenDialog({
+      title: "Select your cookies.txt",
+      filters: [{ name: "Cookies", extensions: ["txt"] }],
+      properties: ["openFile"],
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
 
   createWindow()
 
