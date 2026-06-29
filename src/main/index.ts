@@ -1,6 +1,10 @@
 import { join } from "path"
 
-import { app, BrowserWindow, ipcMain, shell } from "electron"
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron"
+
+import type { ResolveOptions } from "../shared/types"
+
+import { resolve as resolveVideo } from "./ytdlp"
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -36,6 +40,23 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   ipcMain.handle("app:version", () => app.getVersion())
+
+  ipcMain.handle(
+    "yt:resolve",
+    (event, url: string, options?: ResolveOptions) =>
+      resolveVideo(url, options, (percent) =>
+        event.sender.send("yt:setup-progress", percent)
+      )
+  )
+
+  ipcMain.handle("dialog:pick-cookies", async () => {
+    const result = await dialog.showOpenDialog({
+      title: "Select your cookies.txt",
+      filters: [{ name: "Cookies", extensions: ["txt"] }],
+      properties: ["openFile"],
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
 
   createWindow()
 
