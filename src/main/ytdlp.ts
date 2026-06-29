@@ -37,7 +37,14 @@ export async function resolve(
 
   const bin = await ensureYtDlp(onSetupProgress)
 
-  const args = ["-J", "--no-warnings", "--no-playlist"]
+  // --ignore-no-formats-error so we still get the video's info even when
+  // YouTube's default format selection comes up empty (SABR / gated formats).
+  const args = [
+    "-J",
+    "--no-warnings",
+    "--no-playlist",
+    "--ignore-no-formats-error",
+  ]
   if (options?.cookiesFile) {
     args.push("--cookies", options.cookiesFile)
   } else if (options?.cookiesBrowser && options.cookiesBrowser !== "none") {
