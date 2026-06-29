@@ -2,7 +2,7 @@
   "name": "youloader",
   "version": "0.1.0",
   "private": true,
-  "description": "Youloader — paste a YouTube link, pick a quality, download the video or audio.",
+  "description": "Youloader — a desktop YouTube downloader. Paste a link, pick a quality, save the video or audio.",
   "homepage": "https://youloader.robinrahman.pro",
   "license": "MIT",
   "author": {
@@ -13,37 +13,45 @@
     "type": "git",
     "url": "git+https://github.com/rob0pup/r2-youloader.git"
   },
+  "main": "./out/main/index.js",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "check-types": "tsc --noEmit --pretty"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "check-types": "tsc --noEmit",
+    "package:win": "electron-vite build && electron-builder --win"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "geist": "^1.7.0",
     "lucide-react": "^1.14.0",
-    "next": "16.2.3",
     "next-themes": "^0.4.6",
-    "react": "19.2.5",
-    "react-dom": "19.2.5",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.4",
-    "@types/node": "^20.14.12",
+    "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^22.10.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "tailwindcss": "^4.2.4",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "vite": "^6.0.7"
   },
   "resolutions": {
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild", "electron-builder"]
   },
   "packageManager": "pnpm@10.33.0"
 }

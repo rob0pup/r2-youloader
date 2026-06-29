@@ -1,14 +1,14 @@
 import { LogoMark } from "@/components/logo-mark"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export default function Home() {
+function App(): React.JSX.Element {
   return (
     <main className="mx-auto flex min-h-svh max-w-3xl flex-col px-6">
       <header className="flex items-center justify-between py-5">
-        <a href="/" className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-2">
           <LogoMark className="h-5 w-auto" />
           <span className="text-sm font-semibold tracking-tight">Youloader</span>
-        </a>
+        </span>
         <ThemeToggle />
       </header>
 
@@ -18,8 +18,8 @@ export default function Home() {
           Download from YouTube.
         </h1>
         <p className="mx-auto mt-3 max-w-md text-pretty text-muted-foreground">
-          Paste a link, pick a quality, save the video or audio. Simple and
-          fast.
+          Paste a link, pick a quality, save the video or audio. Runs on your
+          machine, nothing in the cloud.
         </p>
 
         <div className="mt-8 w-full max-w-xl">
@@ -38,16 +38,10 @@ export default function Home() {
       </div>
 
       <footer className="border-t border-line py-6 text-center text-xs text-muted-foreground">
-        a tool by{" "}
-        <a
-          href="https://robinrahman.pro"
-          target="_blank"
-          rel="noopener"
-          className="font-medium text-foreground underline underline-offset-2"
-        >
-          Robin
-        </a>
+        a desktop tool by Robin
       </footer>
     </main>
   )
 }
+
+export default App
