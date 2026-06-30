@@ -6,7 +6,8 @@ import {
 } from "lucide-react"
 
 import { LogoMark } from "@/components/logo-mark"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -36,13 +37,7 @@ const FEATURES = [
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-svh max-w-3xl flex-col px-6">
-      <header className="flex items-center justify-between py-5">
-        <span className="inline-flex items-center gap-2">
-          <LogoMark className="h-5 w-auto" />
-          <span className="text-sm font-semibold tracking-tight">Youloader</span>
-        </span>
-        <ThemeToggle />
-      </header>
+      <SiteHeader />
 
       <section className="flex flex-col items-center py-16 text-center sm:py-24">
         <LogoMark className="mb-7 h-14 w-auto" />
@@ -84,17 +79,7 @@ export default function Home() {
         ))}
       </section>
 
-      <footer className="mt-auto border-t border-line py-6 text-center text-xs text-muted-foreground">
-        a tool by{" "}
-        <a
-          href="https://robinrahman.pro"
-          target="_blank"
-          rel="noopener"
-          className="font-medium text-foreground underline underline-offset-2"
-        >
-          Robin
-        </a>
-      </footer>
+      <SiteFooter />
     </main>
   )
 }
