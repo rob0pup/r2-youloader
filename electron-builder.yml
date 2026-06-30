@@ -20,6 +20,21 @@ nsis:
   # Stable (version-less) name so the website can deep-link to the newest build
   # at /releases/latest/download/Youloader-Setup.exe
   artifactName: ${productName}-Setup.${ext}
+mac:
+  icon: build/icon.png
+  category: public.app-category.utilities
+  # Unsigned for now (no Apple Developer cert). Gatekeeper needs a right-click
+  # Open or `xattr -cr` on first launch; documented in the web guide.
+  identity: null
+  target: dmg
+  # Arch in the name so the two builds (arm64 / x64) don't collide and the site
+  # can deep-link each, e.g. /releases/latest/download/Youloader-arm64.dmg
+  artifactName: ${productName}-${arch}.${ext}
+linux:
+  icon: build/icon.png
+  category: AudioVideo
+  target: AppImage
+  artifactName: ${productName}.${ext}
 publish:
   provider: github
   owner: rob0pup

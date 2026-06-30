@@ -4,6 +4,7 @@ import {
   ListVideoIcon,
   ShieldCheckIcon,
 } from "lucide-react"
+import Link from "next/link"
 
 import { LogoMark } from "@/components/logo-mark"
 import { SiteFooter } from "@/components/site-footer"
@@ -61,6 +62,12 @@ export default function Home() {
             Windows 10/11 &middot; free &amp; open. yt-dlp and ffmpeg set
             themselves up on first run.
           </span>
+          <Link
+            href="/guide#mac-linux"
+            className="text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            Also for macOS &amp; Linux &rarr;
+          </Link>
         </div>
       </section>
 
