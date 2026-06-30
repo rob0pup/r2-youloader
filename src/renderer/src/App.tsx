@@ -93,6 +93,14 @@ function App(): React.JSX.Element {
     total: 0,
     percent: 0,
   })
+  const [wantSubs, setWantSubs] = useState(
+    () => localStorage.getItem("youloader.subs") === "1"
+  )
+  const [wantSponsor, setWantSponsor] = useState(
+    () => localStorage.getItem("youloader.sponsorblock") === "1"
+  )
+  const [trimStart, setTrimStart] = useState("")
+  const [trimEnd, setTrimEnd] = useState("")
 
   useEffect(() => window.youloader.onSetupProgress(setSetupPercent), [])
 
@@ -108,6 +116,12 @@ function App(): React.JSX.Element {
   useEffect(() => {
     localStorage.setItem("youloader.downloadDir", downloadDir)
   }, [downloadDir])
+  useEffect(() => {
+    localStorage.setItem("youloader.subs", wantSubs ? "1" : "0")
+  }, [wantSubs])
+  useEffect(() => {
+    localStorage.setItem("youloader.sponsorblock", wantSponsor ? "1" : "0")
+  }, [wantSponsor])
 
   useEffect(() => {
     return window.youloader.onDownloadProgress(({ id, percent, merging }) => {
@@ -125,6 +139,13 @@ function App(): React.JSX.Element {
   }, [])
 
   const cookieOpts = { cookiesBrowser, cookiesFile }
+
+  function buildSection(): string | null {
+    const s = trimStart.trim()
+    const e = trimEnd.trim()
+    if (!s && !e) return null
+    return `*${s || "0"}-${e || "inf"}`
+  }
 
   async function importCookies(): Promise<void> {
     const path = await window.youloader.pickCookiesFile()
@@ -148,6 +169,8 @@ function App(): React.JSX.Element {
     setPlaylist(null)
     setDownloads({})
     setPl({ status: "idle", item: 0, total: 0, percent: 0 })
+    setTrimStart("")
+    setTrimEnd("")
     try {
       if (isPlaylistUrl(url)) {
         const result = await window.youloader.resolvePlaylist(url.trim(), cookieOpts)
@@ -187,6 +210,9 @@ function App(): React.JSX.Element {
         label: opt.label,
         extractMp3: opt.extractMp3,
         downloadDir: downloadDir || null,
+        subtitles: wantSubs,
+        sponsorblock: wantSponsor,
+        section: buildSection(),
         ...cookieOpts,
       })
       setDownloads((d) => ({
@@ -212,6 +238,8 @@ function App(): React.JSX.Element {
         url: url.trim(),
         quality,
         downloadDir: downloadDir || null,
+        subtitles: wantSubs,
+        sponsorblock: wantSponsor,
         ...cookieOpts,
       })
       setPl((cur) => ({ ...cur, status: "done", folder }))
@@ -411,6 +439,50 @@ function App(): React.JSX.Element {
 
             <section className="space-y-2">
               <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Options
+              </h2>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-border bg-card p-3 text-sm">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={wantSubs}
+                    onChange={(e) => setWantSubs(e.target.checked)}
+                    className="size-4 accent-foreground"
+                  />
+                  Subtitles (.srt)
+                </label>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={wantSponsor}
+                    onChange={(e) => setWantSponsor(e.target.checked)}
+                    className="size-4 accent-foreground"
+                  />
+                  Remove sponsors
+                </label>
+                <span className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Trim</span>
+                  <input
+                    value={trimStart}
+                    onChange={(e) => setTrimStart(e.target.value)}
+                    placeholder="0:00"
+                    aria-label="Trim start"
+                    className="w-20 rounded-md border border-border bg-background px-2 py-1 outline-none focus-visible:border-ring"
+                  />
+                  <span className="text-muted-foreground">to</span>
+                  <input
+                    value={trimEnd}
+                    onChange={(e) => setTrimEnd(e.target.value)}
+                    placeholder="end"
+                    aria-label="Trim end"
+                    className="w-20 rounded-md border border-border bg-background px-2 py-1 outline-none focus-visible:border-ring"
+                  />
+                </span>
+              </div>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 Available formats
               </h2>
               <div className="divide-y divide-line overflow-hidden rounded-xl border border-border">
@@ -463,6 +535,27 @@ function App(): React.JSX.Element {
                   </option>
                 ))}
               </select>
+
+              <label className="flex cursor-pointer items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={wantSubs}
+                  onChange={(e) => setWantSubs(e.target.checked)}
+                  disabled={pl.status === "downloading"}
+                  className="size-4 accent-foreground"
+                />
+                Subtitles
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={wantSponsor}
+                  onChange={(e) => setWantSponsor(e.target.checked)}
+                  disabled={pl.status === "downloading"}
+                  className="size-4 accent-foreground"
+                />
+                Remove sponsors
+              </label>
 
               {pl.status === "done" ? (
                 <button

@@ -60,6 +60,12 @@ export type DownloadRequest = {
   downloadDir?: string | null
   cookiesBrowser?: CookiesBrowser
   cookiesFile?: string | null
+  /** Write English subtitles (incl. auto-generated) as a .srt sidecar. */
+  subtitles?: boolean
+  /** Cut out SponsorBlock "sponsor" segments (needs the network at download). */
+  sponsorblock?: boolean
+  /** yt-dlp --download-sections value, e.g. "*0:30-2:00"; null = whole video. */
+  section?: string | null
 }
 
 export type DownloadProgress = {
@@ -86,6 +92,10 @@ export type PlaylistRequest = {
   downloadDir?: string | null
   cookiesBrowser?: CookiesBrowser
   cookiesFile?: string | null
+  /** Write English subtitles (incl. auto-generated) as .srt sidecars. */
+  subtitles?: boolean
+  /** Cut out SponsorBlock "sponsor" segments. */
+  sponsorblock?: boolean
 }
 
 export type PlaylistProgress = {
