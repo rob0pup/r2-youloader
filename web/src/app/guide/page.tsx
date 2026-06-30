@@ -14,7 +14,14 @@ export const metadata: Metadata = {
 }
 
 const REPO = "https://github.com/rob0pup/r2-youloader"
-const DOWNLOAD = `${REPO}/releases/latest/download/Youloader-Setup.exe`
+const LATEST = `${REPO}/releases/latest/download`
+const DL = {
+  win: `${LATEST}/Youloader-Setup.exe`,
+  macArm: `${LATEST}/Youloader-arm64.dmg`,
+  macIntel: `${LATEST}/Youloader-x64.dmg`,
+  linux: `${LATEST}/Youloader.AppImage`,
+}
+const DOWNLOAD = DL.win
 
 const TOC = [
   { id: "install-windows", label: "Install on Windows" },
@@ -136,20 +143,49 @@ export default function GuidePage() {
 
           <Section id="mac-linux" title="macOS & Linux">
             <p>
-              Right now only a Windows installer is published. The app is built
-              on Electron, so it runs on macOS and Linux too, you just build it
-              from source for now (prebuilt Mac and Linux downloads are planned).
+              Youloader is built for macOS and Linux too. Grab the right build:
             </p>
-            <Code>{`git clone ${REPO}
-cd r2-youloader
-pnpm install
-pnpm dev                 # run the app directly
+            <div className="flex flex-wrap gap-2">
+              <a href={DL.macArm} className={cn(buttonVariants({ size: "sm" }))}>
+                macOS (Apple Silicon)
+              </a>
+              <a
+                href={DL.macIntel}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                macOS (Intel)
+              </a>
+              <a
+                href={DL.linux}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                Linux (AppImage)
+              </a>
+            </div>
 
-# …or build an installer for your OS:
-pnpm build
-pnpm exec electron-builder --mac     # or --linux`}</Code>
+            <p className="pt-1">
+              <strong className="text-foreground">On macOS</strong>, the app
+              isn’t notarized yet, so Gatekeeper will block the first launch.
+              Right-click (or Control-click) Youloader in Applications and choose{" "}
+              <Kbd>Open</Kbd>, then <Kbd>Open</Kbd> again. If macOS insists the
+              app is “damaged”, clear the quarantine flag in Terminal:
+            </p>
+            <Code>{`xattr -cr /Applications/Youloader.app`}</Code>
+
             <p>
-              You will need Node 22+ and pnpm. See{" "}
+              <strong className="text-foreground">On Linux</strong>, make the
+              AppImage executable and run it (no install needed):
+            </p>
+            <Code>{`chmod +x Youloader.AppImage
+./Youloader.AppImage`}</Code>
+
+            <p>
+              Prefer to build it yourself? Clone the repo and run{" "}
+              <span className="font-mono text-xs">pnpm dev</span>, or{" "}
+              <span className="font-mono text-xs">
+                pnpm exec electron-builder --mac
+              </span>{" "}
+              / <span className="font-mono text-xs">--linux</span>. See{" "}
               <a
                 href={`${REPO}/blob/main/docs/BUILDING.md`}
                 target="_blank"
@@ -157,8 +193,8 @@ pnpm exec electron-builder --mac     # or --linux`}</Code>
                 className="text-foreground underline underline-offset-2"
               >
                 BUILDING.md
-              </a>{" "}
-              for the details.
+              </a>
+              .
             </p>
           </Section>
 

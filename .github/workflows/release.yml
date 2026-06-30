@@ -1,9 +1,10 @@
 name: Release
 
-# Builds the Windows installer in CI (GitHub's Windows runners have the symlink
-# privilege that the local winCodeSign extraction needs, so this avoids the
-# "enable Developer Mode" dance). Push a tag like v0.1.0 to cut a release; the
-# installer is attached to a GitHub Release and also uploaded as an artifact.
+# Builds installers for Windows, macOS (Apple Silicon + Intel) and Linux in CI.
+# Each arch is built on a matching runner so ffmpeg-static (a per-arch binary)
+# is correct. CI runners also have the symlink privilege the local winCodeSign
+# step needs, so no Developer Mode dance. Push a tag like v0.1.0 to cut a
+# release; a workflow_dispatch run just produces downloadable artifacts.
 on:
   push:
     tags: ["v*"]
@@ -13,8 +14,24 @@ permissions:
   contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            arch: x64
+          - os: macos-latest # Apple Silicon
+            platform: mac
+            arch: arm64
+          - os: macos-13 # Intel
+            platform: mac
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -24,15 +41,34 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - name: Build installer
-        run: >
-          pnpm exec electron-builder --win
-          --publish ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+      - name: Build ${{ matrix.platform }} (${{ matrix.arch }})
+        run: pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
       - uses: actions/upload-artifact@v4
         with:
-          name: youloader-windows-installer
-          path: dist/*.exe
+          name: installer-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
           if-no-files-found: error
+
+  # One release job collects every artifact and publishes them together, so the
+  # matrix jobs never race to create the same GitHub Release.
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+          fail_on_unmatched_files: true
