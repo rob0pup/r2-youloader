@@ -56,8 +56,7 @@ export default function Home() {
 
         <div className="mt-8 flex flex-col items-center gap-3">
           <a
-            href="/download/youloader-setup.exe"
-            download
+            href="https://github.com/rob0pup/r2-youloader/releases/latest/download/Youloader-Setup.exe"
             className={cn(buttonVariants({ size: "lg" }), "gap-2")}
           >
             <DownloadIcon />
