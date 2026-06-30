@@ -92,6 +92,10 @@ Youloader is a **desktop app**: a thin UI driving yt-dlp + ffmpeg locally.
   replaced). Nothing for the user to install.
 - **ffmpeg** is bundled (`ffmpeg-static`), and unpacked from the asar when
   packaged so it's a real runnable file.
+- **Deno** (the JS runtime that solves the n-challenge, see 3.5) is downloaded
+  the same way on first use and unzipped into the same `bin/` folder. yt-dlp
+  discovers it because that folder is prepended to the spawned process's `PATH`.
+  All three binaries are fetched at runtime, so they don't bloat the installer.
 
 ### 2.3 The three flows
 
@@ -169,11 +173,34 @@ Two packaging traps:
   privilege, so the installer step fails unless **Developer Mode** (or admin) is
   on. The unpacked (`--dir`) build works without it.
 
-### 3.5 What's still open
+### 3.5 The last hidden dependency: bundling Deno
 
-- **Node dependency.** The n-challenge solver currently needs Node 22+ installed.
-  Bundling **Deno** (yt-dlp's default runtime) next to the binary would make the
-  app truly zero-install; Deno ships as a zip, so it needs an unzip step.
+After the n-challenge was beaten with `--js-runtimes node`, the app technically
+worked, but only on machines that happened to have **Node 22+ installed**. A
+"nothing to install" desktop app that secretly requires Node isn't actually
+zero-install. So why is a JS runtime needed at all, and why Deno?
+
+- **Why any JS runtime.** YouTube scrambles its stream URLs with a JavaScript
+  "n challenge" (see 1.3). yt-dlp ships a *solver script* but can't run JS
+  itself; it shells out to an external engine. No engine -> only storyboard
+  images come back.
+- **Why Deno, not the Node we started with.** Deno is yt-dlp's **recommended**
+  runtime for this: it runs the untrusted YouTube JS in a **sandbox** (no file,
+  network, or env access by default), which is safer than handing it a full
+  Node. It also ships as a **single self-contained binary** with no installer or
+  system dependencies, so it can be fetched on demand exactly like yt-dlp and
+  ffmpeg.
+
+**Fix:** download Deno's zip on first use, unzip it into the same `bin/` folder
+(`Expand-Archive` on Windows, `unzip` elsewhere, no extra npm dependency), and
+prepend that folder to the spawned yt-dlp process's `PATH`. The runtime flag
+became `--js-runtimes deno,node`, so the bundled Deno is preferred but a system
+Node still works as a fallback. Deno setup is best-effort: if the download fails
+(e.g. offline), the app still runs and yt-dlp falls back to whatever runtime is
+on `PATH`. The app is now genuinely zero-install.
+
+### 3.6 What's still open
+
 - **Public distribution.** Because this is a YouTube tool, hosting a public,
   branded installer carries ToS exposure. The repo is private and the landing
   button says "coming soon" until that's a deliberate decision.
@@ -189,6 +216,8 @@ Two packaging traps:
 - **n-challenge / signature:** JS-scrambled stream-URL protection; needs a JS
   runtime to solve.
 - **EJS:** yt-dlp's "external JS" mechanism using Deno/Node to run the solver.
+- **Deno:** a single-binary, sandboxed JS runtime; bundled here (downloaded on
+  first use) to solve the n-challenge with no installed Node required.
 - **PO token / SABR:** YouTube's newer proof-of-origin gating of format URLs.
 - **cookies-from-browser / cookies.txt:** ways to hand yt-dlp a logged-in session
   to clear the bot gate.
