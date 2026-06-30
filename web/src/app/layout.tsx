@@ -1,5 +1,6 @@
 import "./globals.css"
 
+import { Analytics } from "@vercel/analytics/next"
 import { GeistMono } from "geist/font/mono"
 import { GeistSans } from "geist/font/sans"
 import type { Metadata, Viewport } from "next"
@@ -50,6 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-svh bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
