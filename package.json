@@ -1,6 +1,6 @@
 {
   "name": "youloader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Youloader — a desktop YouTube downloader. Paste a link, pick a quality, save the video or audio.",
   "homepage": "https://youloader.robinrahman.pro",
