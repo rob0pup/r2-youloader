@@ -157,6 +157,21 @@ export async function download(
     }
     args.push("-f", format)
   }
+
+  // Optional extras (subtitles only make sense for video output).
+  if (req.subtitles && !req.isAudio && !req.extractMp3) {
+    args.push(
+      "--write-subs",
+      "--write-auto-subs",
+      "--sub-langs",
+      "en.*",
+      "--convert-subs",
+      "srt"
+    )
+  }
+  if (req.sponsorblock) args.push("--sponsorblock-remove", "sponsor")
+  if (req.section) args.push("--download-sections", req.section)
+
   args.push(req.url)
 
   return new Promise<string>((resolve, reject) => {
@@ -287,6 +302,19 @@ export async function downloadPlaylist(
     args.push("-f", selector)
     if (merge) args.push("--merge-output-format", "mp4")
   }
+
+  if (req.subtitles && !audioOnly) {
+    args.push(
+      "--write-subs",
+      "--write-auto-subs",
+      "--sub-langs",
+      "en.*",
+      "--convert-subs",
+      "srt"
+    )
+  }
+  if (req.sponsorblock) args.push("--sponsorblock-remove", "sponsor")
+
   args.push(req.url)
 
   return new Promise<string>((resolve, reject) => {
