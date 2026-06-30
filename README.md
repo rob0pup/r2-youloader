@@ -12,8 +12,9 @@ Paste a link, pick a quality up to 8K, and save the video (MP4) or audio (MP3/M4
 | --- | --- |
 | Windows | [Youloader-Setup.exe](https://github.com/rob0pup/r2-youloader/releases/latest/download/Youloader-Setup.exe) |
 | macOS (Apple Silicon) | [Youloader-arm64.dmg](https://github.com/rob0pup/r2-youloader/releases/latest/download/Youloader-arm64.dmg) |
-| macOS (Intel) | [Youloader-x64.dmg](https://github.com/rob0pup/r2-youloader/releases/latest/download/Youloader-x64.dmg) |
 | Linux | [Youloader.AppImage](https://github.com/rob0pup/r2-youloader/releases/latest/download/Youloader.AppImage) |
+
+Intel Macs aren't prebuilt (Apple Silicon covers Macs since late 2020); [build from source](docs/BUILDING.md) if you need one.
 
 Builds are unsigned for now, so Windows shows a SmartScreen prompt (More info → Run anyway) and macOS needs a right-click → Open. The [guide](https://youloader.robinrahman.pro/guide) walks through it. Windows and Linux builds update themselves; macOS users re-download.
 

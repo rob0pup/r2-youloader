@@ -27,8 +27,8 @@ mac:
   # Open or `xattr -cr` on first launch; documented in the web guide.
   identity: null
   target: dmg
-  # Arch in the name so the two builds (arm64 / x64) don't collide and the site
-  # can deep-link each, e.g. /releases/latest/download/Youloader-arm64.dmg
+  # Apple Silicon only (see release.yml). Arch stays in the name so the deep
+  # link is stable, e.g. /releases/latest/download/Youloader-arm64.dmg
   artifactName: ${productName}-${arch}.${ext}
 linux:
   icon: build/icon.png

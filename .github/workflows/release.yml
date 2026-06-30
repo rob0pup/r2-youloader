@@ -1,10 +1,14 @@
 name: Release
 
-# Builds installers for Windows, macOS (Apple Silicon + Intel) and Linux in CI.
-# Each arch is built on a matching runner so ffmpeg-static (a per-arch binary)
-# is correct. CI runners also have the symlink privilege the local winCodeSign
-# step needs, so no Developer Mode dance. Push a tag like v0.1.0 to cut a
-# release; a workflow_dispatch run just produces downloadable artifacts.
+# Builds installers for Windows, macOS (Apple Silicon) and Linux in CI. Each
+# arch is built on a matching runner so ffmpeg-static (a per-arch binary) is
+# correct. CI runners also have the symlink privilege the local winCodeSign step
+# needs, so no Developer Mode dance. Push a tag like v0.1.0 to cut a release; a
+# workflow_dispatch run just produces downloadable artifacts.
+#
+# Intel macOS (macos-13) is intentionally not built: GitHub's free Intel runners
+# are chronically queued and macos-13 is being deprecated, while Apple Silicon
+# covers every Mac since late 2020. Intel-Mac users can build from source.
 on:
   push:
     tags: ["v*"]
@@ -25,9 +29,6 @@ jobs:
           - os: macos-latest # Apple Silicon
             platform: mac
             arch: arm64
-          - os: macos-13 # Intel
-            platform: mac
-            arch: x64
           - os: ubuntu-latest
             platform: linux
             arch: x64

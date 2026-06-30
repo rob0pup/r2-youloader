@@ -10,11 +10,14 @@ no tokens are involved.
 git tag v0.1.0  ->  Release workflow (matrix)  ->  one GitHub Release with:
                     win   x64  (windows-latest)      Youloader-Setup.exe
                     mac   arm64 (macos-latest)        Youloader-arm64.dmg
-                    mac   x64  (macos-13 / Intel)     Youloader-x64.dmg
                     linux x64  (ubuntu-latest)        Youloader.AppImage
                                                           |
                     Download links -> /releases/latest/download/<stable name>
 ```
+
+Intel macOS isn't built: GitHub's free Intel runners are chronically queued and
+macos-13 is being deprecated, while Apple Silicon covers every Mac since late
+2020. Intel-Mac users build from source ([`BUILDING.md`](./BUILDING.md)).
 
 ## Cut a release
 
@@ -42,7 +45,6 @@ the newest build and never needs updating:
 | --- | --- |
 | Windows | `Youloader-Setup.exe` |
 | macOS (Apple Silicon) | `Youloader-arm64.dmg` |
-| macOS (Intel) | `Youloader-x64.dmg` |
 | Linux | `Youloader.AppImage` |
 
 ## Notes
