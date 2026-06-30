@@ -7,6 +7,7 @@ import type {
   PlaylistProgress,
   PlaylistRequest,
   ResolveOptions,
+  UpdateStatus,
   VideoInfo,
 } from "../shared/types"
 
@@ -72,6 +73,16 @@ const youloader = {
     ipcRenderer.on("yt:setup-progress", listener)
     return () => ipcRenderer.removeListener("yt:setup-progress", listener)
   },
+
+  /** Auto-update status events. Returns an unsubscribe fn. */
+  onUpdateStatus: (cb: (s: UpdateStatus) => void): (() => void) => {
+    const listener = (_: unknown, s: UpdateStatus): void => cb(s)
+    ipcRenderer.on("update:status", listener)
+    return () => ipcRenderer.removeListener("update:status", listener)
+  },
+
+  /** Restart the app to install a downloaded update. */
+  restartToUpdate: (): Promise<void> => ipcRenderer.invoke("update:restart"),
 }
 
 contextBridge.exposeInMainWorld("youloader", youloader)

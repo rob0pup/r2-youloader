@@ -4,11 +4,16 @@ import {
   FolderOpenIcon,
   ListVideoIcon,
   Loader2Icon,
+  RotateCwIcon,
   TriangleAlertIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import type { CookiesBrowser, QualityPreset } from "../../shared/types"
+import type {
+  CookiesBrowser,
+  QualityPreset,
+  UpdateStatus,
+} from "../../shared/types"
 
 import { LogoMark } from "@/components/logo-mark"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -101,8 +106,14 @@ function App(): React.JSX.Element {
   )
   const [trimStart, setTrimStart] = useState("")
   const [trimEnd, setTrimEnd] = useState("")
+  const [update, setUpdate] = useState<UpdateStatus | null>(null)
+  const [appVersion, setAppVersion] = useState("")
 
   useEffect(() => window.youloader.onSetupProgress(setSetupPercent), [])
+  useEffect(() => window.youloader.onUpdateStatus(setUpdate), [])
+  useEffect(() => {
+    window.youloader.appVersion().then(setAppVersion)
+  }, [])
 
   useEffect(() => {
     window.youloader.downloadsDir().then(setDefaultDir)
@@ -332,6 +343,12 @@ function App(): React.JSX.Element {
       </header>
 
       <div className="flex flex-1 flex-col py-8">
+        {update && (
+          <UpdateBanner
+            update={update}
+            onRestart={() => window.youloader.restartToUpdate()}
+          />
+        )}
         <form onSubmit={handleResolve} className="flex gap-2">
           <input
             type="url"
@@ -640,10 +657,88 @@ function App(): React.JSX.Element {
         )}
       </div>
 
-      <footer className="border-t border-line py-6 text-center text-xs text-muted-foreground">
-        a desktop tool by Robin
+      <footer className="mt-auto border-t border-line py-6">
+        <div className="flex flex-col items-center gap-2.5 text-center">
+          <nav className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs">
+            <a
+              href="https://youloader.robinrahman.pro/guide"
+              target="_blank"
+              rel="noopener"
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Guide
+            </a>
+            <a
+              href="https://github.com/rob0pup/r2-youloader"
+              target="_blank"
+              rel="noopener"
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://github.com/rob0pup/r2-youloader/releases"
+              target="_blank"
+              rel="noopener"
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Releases
+            </a>
+          </nav>
+          <p className="text-xs text-muted-foreground">
+            a desktop tool by{" "}
+            <a
+              href="https://robinrahman.pro"
+              target="_blank"
+              rel="noopener"
+              className="font-medium text-foreground underline underline-offset-2"
+            >
+              Robin
+            </a>
+            {appVersion && (
+              <>
+                <span className="px-1.5 text-muted-foreground/50">·</span>
+                <span className="tabular-nums">v{appVersion}</span>
+              </>
+            )}
+          </p>
+        </div>
       </footer>
     </main>
+  )
+}
+
+function UpdateBanner({
+  update,
+  onRestart,
+}: {
+  update: UpdateStatus
+  onRestart: () => void
+}): React.JSX.Element | null {
+  if (update.status === "error") return null
+
+  if (update.status === "downloaded") {
+    return (
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
+        <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
+        <span>Update ready (v{update.version}).</span>
+        <Button size="sm" className="ml-auto" onClick={onRestart}>
+          <RotateCwIcon />
+          Restart to update
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+      <Loader2Icon className="size-4 shrink-0 animate-spin" />
+      <span>
+        {update.status === "downloading"
+          ? `Downloading update… ${update.percent}%`
+          : "A new version is available, downloading…"}
+      </span>
+    </div>
   )
 }
 

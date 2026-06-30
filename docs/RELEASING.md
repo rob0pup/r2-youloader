@@ -54,3 +54,7 @@ the newest build and never needs updating:
 - Builds are **unsigned**: Windows shows a SmartScreen prompt, macOS needs a
   right-click Open / `xattr -cr` (both covered in the website guide). Signing
   needs a paid certificate; see future work.
+- **Auto-update**: the release also publishes `latest.yml` (Windows) and
+  `latest-linux.yml` so installed apps update themselves via electron-updater.
+  macOS auto-update is disabled (it requires code signing), so `latest-mac.yml`
+  is intentionally not published; Mac users re-download from the site.
