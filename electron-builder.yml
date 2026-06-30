@@ -3,10 +3,18 @@ productName: Youloader
 directories:
   buildResources: build
 files:
-  - "out/**/*"
-  - "package.json"
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.gitignore,.npmrc,pnpm-lock.yaml,README.md,LICENSE}"
+  - "!{tsconfig.json,electron-builder.yml,.github}"
+asarUnpack:
+  - node_modules/ffmpeg-static/**
 win:
+  icon: build/icon.png
   target: nsis
 nsis:
   oneClick: false
+  perMachine: false
   allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}
