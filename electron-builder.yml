@@ -17,7 +17,9 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  artifactName: ${productName}-Setup-${version}.${ext}
+  # Stable (version-less) name so the website can deep-link to the newest build
+  # at /releases/latest/download/Youloader-Setup.exe
+  artifactName: ${productName}-Setup.${ext}
 publish:
   provider: github
   owner: rob0pup

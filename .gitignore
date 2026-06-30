@@ -2,9 +2,6 @@ node_modules/
 .next/
 out/
 dist/
-
-# Installer fetched at build time by web/scripts/fetch-installer.mjs
-web/public/download/
 *.tsbuildinfo
 next-env.d.ts
 

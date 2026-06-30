@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "node scripts/fetch-installer.mjs && next build",
     "start": "next start",
     "check-types": "tsc --noEmit --pretty"
   },
