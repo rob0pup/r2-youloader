@@ -14,8 +14,9 @@ import {
   resolve as resolveVideo,
   resolvePlaylist,
 } from "./ytdlp"
+import { initUpdater, quitAndInstall } from "./updater"
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 920,
     height: 740,
@@ -45,6 +46,8 @@ function createWindow(): void {
   } else {
     win.loadFile(join(__dirname, "../renderer/index.html"))
   }
+
+  return win
 }
 
 app.whenReady().then(() => {
@@ -95,6 +98,8 @@ app.whenReady().then(() => {
 
   ipcMain.handle("clipboard:read-text", () => clipboard.readText())
 
+  ipcMain.handle("update:restart", () => quitAndInstall())
+
   ipcMain.handle("dialog:pick-folder", async () => {
     const result = await dialog.showOpenDialog({
       title: "Choose a download folder",
@@ -112,7 +117,9 @@ app.whenReady().then(() => {
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
 
-  createWindow()
+  const win = createWindow()
+  // Auto-update only makes sense for an installed build.
+  if (app.isPackaged) initUpdater(win)
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

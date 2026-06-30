@@ -105,3 +105,10 @@ export type PlaylistProgress = {
   percent: number
   merging?: boolean
 }
+
+/** Auto-update lifecycle, surfaced to the renderer as a small banner. */
+export type UpdateStatus =
+  | { status: "available"; version: string }
+  | { status: "downloading"; percent: number }
+  | { status: "downloaded"; version: string }
+  | { status: "error"; message: string }

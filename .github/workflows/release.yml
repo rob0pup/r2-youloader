@@ -52,6 +52,8 @@ jobs:
             dist/*.exe
             dist/*.dmg
             dist/*.AppImage
+            dist/*.blockmap
+            dist/*.yml
           if-no-files-found: error
 
   # One release job collects every artifact and publishes them together, so the
@@ -67,8 +69,16 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          # Installers for every platform, plus the update metadata that
+          # electron-updater reads. Only latest.yml (Windows) and
+          # latest-linux.yml are published: macOS auto-update is disabled (it
+          # needs code signing) and both mac jobs would otherwise collide on a
+          # single latest-mac.yml name.
           files: |
             artifacts/**/*.exe
             artifacts/**/*.dmg
             artifacts/**/*.AppImage
+            artifacts/**/*.exe.blockmap
+            artifacts/**/latest.yml
+            artifacts/**/latest-linux.yml
           fail_on_unmatched_files: true
