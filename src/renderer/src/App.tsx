@@ -37,6 +37,8 @@ type DownloadState = {
   status: "downloading" | "done" | "error"
   percent: number
   merging?: boolean
+  eta?: string
+  speed?: string
   path?: string
   error?: string
 }
@@ -46,6 +48,8 @@ type PlaylistDL = {
   total: number
   percent: number
   merging?: boolean
+  eta?: string
+  speed?: string
   folder?: string
   error?: string
 }
@@ -151,12 +155,14 @@ function App(): React.JSX.Element {
   }, [wantSponsor])
 
   useEffect(() => {
-    return window.youloader.onDownloadProgress(({ id, percent, merging }) => {
-      setDownloads((d) => ({
-        ...d,
-        [id]: { ...d[id], status: "downloading", percent, merging },
-      }))
-    })
+    return window.youloader.onDownloadProgress(
+      ({ id, percent, merging, eta, speed }) => {
+        setDownloads((d) => ({
+          ...d,
+          [id]: { ...d[id], status: "downloading", percent, merging, eta, speed },
+        }))
+      }
+    )
   }, [])
 
   useEffect(() => {
@@ -624,11 +630,20 @@ function App(): React.JSX.Element {
             </div>
 
             {pl.status === "downloading" && (
-              <div className="h-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-foreground transition-[width] duration-200"
-                  style={{ width: `${plOverall}%` }}
-                />
+              <div className="space-y-1.5">
+                <div className="h-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-foreground transition-[width] duration-200"
+                    style={{ width: `${plOverall}%` }}
+                  />
+                </div>
+                {!pl.merging && (pl.speed || pl.eta) && (
+                  <p className="text-xs tabular-nums text-muted-foreground">
+                    {pl.speed}
+                    {pl.speed && pl.eta ? " · " : ""}
+                    {pl.eta ? `ETA ${pl.eta}` : ""}
+                  </p>
+                )}
               </div>
             )}
             {pl.status === "error" && (
@@ -794,6 +809,14 @@ function FormatRow({
           </Button>
         )}
       </div>
+
+      {downloading && !state?.merging && (state?.speed || state?.eta) && (
+        <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+          {state?.speed}
+          {state?.speed && state?.eta ? " · " : ""}
+          {state?.eta ? `ETA ${state.eta}` : ""}
+        </p>
+      )}
 
       {downloading && (
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
