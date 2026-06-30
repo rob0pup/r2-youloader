@@ -14,7 +14,7 @@ import type {
   VideoInfo,
 } from "../shared/types"
 
-import { ensureYtDlp } from "./binaries"
+import { ensureEngine, ensureYtDlp, runtimeEnv } from "./binaries"
 import { ffmpegPath } from "./ffmpeg"
 
 const execFileAsync = promisify(execFile)
@@ -47,11 +47,12 @@ export async function resolve(
     throw new Error("Please paste a YouTube link.")
   }
 
-  const bin = await ensureYtDlp(onSetupProgress)
+  const bin = await ensureEngine(onSetupProgress)
 
-  // --js-runtimes node: YouTube obfuscates format URLs with a JS "n challenge".
-  //   yt-dlp's bundled solver needs a JS runtime; we point it at Node. Without
-  //   this, only storyboard images come back.
+  // --js-runtimes deno,node: YouTube obfuscates format URLs with a JS "n
+  //   challenge". yt-dlp's bundled solver needs a JS runtime; we prefer our
+  //   bundled Deno (found via PATH in runtimeEnv) and fall back to a system
+  //   Node if present. Without a runtime, only storyboard images come back.
   // --ignore-no-formats-error: still return the video's info even if format
   //   selection comes up empty.
   const args = [
@@ -60,7 +61,7 @@ export async function resolve(
     "--no-playlist",
     "--ignore-no-formats-error",
     "--js-runtimes",
-    "node",
+    "deno,node",
   ]
   if (options?.cookiesFile) {
     args.push("--cookies", options.cookiesFile)
@@ -71,6 +72,7 @@ export async function resolve(
 
   const { stdout } = await execFileAsync(bin, args, {
     maxBuffer: 64 * 1024 * 1024,
+    env: runtimeEnv(),
   })
 
   const data = JSON.parse(stdout) as {
@@ -122,13 +124,13 @@ export async function download(
   onProgress: (percent: number, merging: boolean) => void,
   onSetupProgress?: (percent: number) => void
 ): Promise<string> {
-  const bin = await ensureYtDlp(onSetupProgress)
+  const bin = await ensureEngine(onSetupProgress)
   const dir = req.downloadDir || app.getPath("downloads")
   const outPath = join(dir, `${safeName(req.title)} [${req.label}].${req.container}`)
 
   const args = [
     "--js-runtimes",
-    "node",
+    "deno,node",
     "--ffmpeg-location",
     ffmpegPath(),
     "--no-warnings",
@@ -158,7 +160,7 @@ export async function download(
   args.push(req.url)
 
   return new Promise<string>((resolve, reject) => {
-    const proc = spawn(bin, args)
+    const proc = spawn(bin, args, { env: runtimeEnv() })
     let lastError = ""
 
     const handle = (chunk: Buffer): void => {
@@ -254,7 +256,7 @@ export async function downloadPlaylist(
   }) => void,
   onSetupProgress?: (percent: number) => void
 ): Promise<string> {
-  const bin = await ensureYtDlp(onSetupProgress)
+  const bin = await ensureEngine(onSetupProgress)
   const { selector, merge, audioOnly } = selectorForQuality(req.quality)
   const dir = req.downloadDir || app.getPath("downloads")
   const outTemplate = join(
@@ -265,7 +267,7 @@ export async function downloadPlaylist(
 
   const args = [
     "--js-runtimes",
-    "node",
+    "deno,node",
     "--ffmpeg-location",
     ffmpegPath(),
     "--no-warnings",
@@ -288,7 +290,7 @@ export async function downloadPlaylist(
   args.push(req.url)
 
   return new Promise<string>((resolve, reject) => {
-    const proc = spawn(bin, args)
+    const proc = spawn(bin, args, { env: runtimeEnv() })
     let item = 1
     let total = 0
     let folder = dir
