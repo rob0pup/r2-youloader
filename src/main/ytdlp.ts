@@ -118,10 +118,37 @@ function safeName(title: string): string {
   )
 }
 
+/**
+ * Pull percent / speed / ETA out of a yt-dlp progress line, e.g.
+ * `[download]  45.2% of 12.34MiB at 1.23MiB/s ETA 00:07`. yt-dlp already
+ * computes speed and ETA, so we just surface them (omitted when "Unknown").
+ */
+function parseProgress(text: string): {
+  percent?: number
+  speed?: string
+  eta?: string
+} {
+  const pct = text.match(/\[download\]\s+([\d.]+)%/)
+  const speed = text.match(/at\s+([\d.]+\s*[KMG]?i?B\/s)/i)
+  const eta = text.match(/ETA\s+([\d:]+)/)
+  return {
+    percent: pct ? Math.min(100, parseFloat(pct[1])) : undefined,
+    speed: speed ? speed[1].replace(/\s+/g, "") : undefined,
+    eta: eta ? eta[1] : undefined,
+  }
+}
+
+type DownloadTick = {
+  percent: number
+  merging: boolean
+  eta?: string
+  speed?: string
+}
+
 /** Download the chosen format to the Downloads folder. Resolves with the path. */
 export async function download(
   req: DownloadRequest,
-  onProgress: (percent: number, merging: boolean) => void,
+  onProgress: (tick: DownloadTick) => void,
   onSetupProgress?: (percent: number) => void
 ): Promise<string> {
   const bin = await ensureEngine(onSetupProgress)
@@ -181,11 +208,18 @@ export async function download(
     const handle = (chunk: Buffer): void => {
       const text = chunk.toString()
       if (/\[Merger\]/.test(text)) {
-        onProgress(100, true)
+        onProgress({ percent: 100, merging: true })
         return
       }
-      const match = text.match(/\[download\]\s+([\d.]+)%/)
-      if (match) onProgress(Math.min(100, parseFloat(match[1])), false)
+      const p = parseProgress(text)
+      if (p.percent != null) {
+        onProgress({
+          percent: p.percent,
+          merging: false,
+          eta: p.eta,
+          speed: p.speed,
+        })
+      }
       if (/ERROR:/i.test(text)) lastError = text.trim()
     }
 
@@ -268,6 +302,8 @@ export async function downloadPlaylist(
     total: number
     percent: number
     merging: boolean
+    eta?: string
+    speed?: string
   }) => void,
   onSetupProgress?: (percent: number) => void
 ): Promise<string> {
@@ -337,13 +373,15 @@ export async function downloadPlaylist(
         onProgress({ item, total, percent: 100, merging: true })
         return
       }
-      const pct = text.match(/\[download\]\s+([\d.]+)%/)
-      if (pct) {
+      const p = parseProgress(text)
+      if (p.percent != null) {
         onProgress({
           item,
           total,
-          percent: Math.min(100, parseFloat(pct[1])),
+          percent: p.percent,
           merging: false,
+          eta: p.eta,
+          speed: p.speed,
         })
       }
       if (/ERROR:/i.test(text)) lastError = text.trim()

@@ -64,11 +64,10 @@ app.whenReady().then(() => {
   ipcMain.handle("yt:download", (event, req: DownloadRequest) =>
     downloadVideo(
       req,
-      (percent, merging) =>
+      (tick) =>
         event.sender.send("yt:download-progress", {
           id: req.formatId,
-          percent,
-          merging,
+          ...tick,
         }),
       (percent) => event.sender.send("yt:setup-progress", percent)
     )

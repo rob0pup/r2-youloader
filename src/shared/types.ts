@@ -73,6 +73,10 @@ export type DownloadProgress = {
   id: string
   percent: number
   merging?: boolean
+  /** yt-dlp's own estimate, e.g. "00:07"; absent when unknown. */
+  eta?: string
+  /** yt-dlp's current speed, e.g. "1.23MiB/s"; absent when unknown. */
+  speed?: string
 }
 
 export type QualityPreset = "best" | "1080p" | "720p" | "480p" | "audio"
@@ -104,6 +108,8 @@ export type PlaylistProgress = {
   /** Percent of the current item. */
   percent: number
   merging?: boolean
+  eta?: string
+  speed?: string
 }
 
 /** Auto-update lifecycle, surfaced to the renderer as a small banner. */
