@@ -18,7 +18,6 @@ const LATEST = `${REPO}/releases/latest/download`
 const DL = {
   win: `${LATEST}/Youloader-Setup.exe`,
   macArm: `${LATEST}/Youloader-arm64.dmg`,
-  macIntel: `${LATEST}/Youloader-x64.dmg`,
   linux: `${LATEST}/Youloader.AppImage`,
 }
 const DOWNLOAD = DL.win
@@ -150,18 +149,18 @@ export default function GuidePage() {
                 macOS (Apple Silicon)
               </a>
               <a
-                href={DL.macIntel}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                macOS (Intel)
-              </a>
-              <a
                 href={DL.linux}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
               >
                 Linux (AppImage)
               </a>
             </div>
+            <p>
+              The macOS build is for <strong className="text-foreground">Apple
+              Silicon</strong> (M1 and later, every Mac since late 2020). On an
+              older <strong className="text-foreground">Intel</strong> Mac, build
+              from source (below).
+            </p>
 
             <p className="pt-1">
               <strong className="text-foreground">On macOS</strong>, the app
