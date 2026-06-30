@@ -1,6 +1,6 @@
 import { join } from "path"
 
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron"
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 
 import type {
   DownloadRequest,
@@ -92,6 +92,8 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle("app:downloads-dir", () => app.getPath("downloads"))
+
+  ipcMain.handle("clipboard:read-text", () => clipboard.readText())
 
   ipcMain.handle("dialog:pick-folder", async () => {
     const result = await dialog.showOpenDialog({

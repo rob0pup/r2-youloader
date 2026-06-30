@@ -54,6 +54,10 @@ const youloader = {
   /** The OS Downloads folder (the default save location). */
   downloadsDir: (): Promise<string> => ipcRenderer.invoke("app:downloads-dir"),
 
+  /** Current clipboard text (used to auto-detect a pasted YouTube link). */
+  readClipboard: (): Promise<string> =>
+    ipcRenderer.invoke("clipboard:read-text"),
+
   /** Open a folder picker for the download location. */
   pickFolder: (): Promise<string | null> =>
     ipcRenderer.invoke("dialog:pick-folder"),

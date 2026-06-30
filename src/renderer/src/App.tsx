@@ -99,6 +99,22 @@ function App(): React.JSX.Element {
   useEffect(() => {
     window.youloader.downloadsDir().then(setDefaultDir)
   }, [])
+
+  // Auto-fill a YouTube link sitting on the clipboard when the app gains focus,
+  // but only when the box is empty so we never clobber what you're typing.
+  useEffect(() => {
+    function check(): void {
+      window.youloader.readClipboard().then((text) => {
+        const t = (text || "").trim()
+        if (/^(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\//i.test(t)) {
+          setUrl((cur) => (cur.trim() === "" ? t : cur))
+        }
+      })
+    }
+    check()
+    window.addEventListener("focus", check)
+    return () => window.removeEventListener("focus", check)
+  }, [])
   useEffect(() => {
     localStorage.setItem("youloader.cookiesBrowser", cookiesBrowser)
   }, [cookiesBrowser])
