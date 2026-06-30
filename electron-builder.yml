@@ -24,3 +24,6 @@ publish:
   provider: github
   owner: rob0pup
   repo: r2-youloader
+  # Publish straight to a public release (electron-builder defaults to a draft,
+  # which 404s the website's latest-download link until manually published).
+  releaseType: release
