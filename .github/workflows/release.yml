@@ -1,0 +1,38 @@
+name: Release
+
+# Builds the Windows installer in CI (GitHub's Windows runners have the symlink
+# privilege that the local winCodeSign extraction needs, so this avoids the
+# "enable Developer Mode" dance). Push a tag like v0.1.0 to cut a release; the
+# installer is attached to a GitHub Release and also uploaded as an artifact.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Build installer
+        run: >
+          pnpm exec electron-builder --win
+          --publish ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: youloader-windows-installer
+          path: dist/*.exe
+          if-no-files-found: error

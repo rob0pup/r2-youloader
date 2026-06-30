@@ -7,7 +7,8 @@ import {
 
 import { LogoMark } from "@/components/logo-mark"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const FEATURES = [
   {
@@ -54,12 +55,17 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-3">
-          <Button size="lg" disabled className="gap-2">
+          <a
+            href="/download/youloader-setup.exe"
+            download
+            className={cn(buttonVariants({ size: "lg" }), "gap-2")}
+          >
             <DownloadIcon />
             Download for Windows
-          </Button>
+          </a>
           <span className="text-xs text-muted-foreground">
-            Coming soon. The app is being built in the open.
+            Windows 10/11 &middot; free &amp; open. yt-dlp and ffmpeg set
+            themselves up on first run.
           </span>
         </div>
       </section>

@@ -18,3 +18,7 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   artifactName: ${productName}-Setup-${version}.${ext}
+publish:
+  provider: github
+  owner: rob0pup
+  repo: r2-youloader
