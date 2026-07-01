@@ -388,6 +388,7 @@ function App(): React.JSX.Element {
         {update && (
           <UpdateBanner
             update={update}
+            onUpdate={() => window.youloader.downloadUpdate()}
             onRestart={() => window.youloader.restartToUpdate()}
           />
         )}
@@ -805,9 +806,11 @@ function App(): React.JSX.Element {
 
 function UpdateBanner({
   update,
+  onUpdate,
   onRestart,
 }: {
   update: UpdateStatus
+  onUpdate: () => void
   onRestart: () => void
 }): React.JSX.Element | null {
   if (update.status === "error") return null
@@ -825,14 +828,24 @@ function UpdateBanner({
     )
   }
 
+  if (update.status === "downloading") {
+    return (
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+        <Loader2Icon className="size-4 shrink-0 animate-spin" />
+        <span>Downloading update… {update.percent}%</span>
+      </div>
+    )
+  }
+
+  // available — ask before doing anything.
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
-      <Loader2Icon className="size-4 shrink-0 animate-spin" />
-      <span>
-        {update.status === "downloading"
-          ? `Downloading update… ${update.percent}%`
-          : "A new version is available, downloading…"}
-      </span>
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 text-sm">
+      <span className="size-2 shrink-0 rounded-full bg-sky-500" />
+      <span>A new version is available (v{update.version}).</span>
+      <Button size="sm" className="ml-auto" onClick={onUpdate}>
+        <DownloadIcon />
+        Update
+      </Button>
     </div>
   )
 }

@@ -15,7 +15,7 @@ import {
   resolve as resolveVideo,
   resolvePlaylist,
 } from "./ytdlp"
-import { initUpdater, quitAndInstall } from "./updater"
+import { downloadUpdate, initUpdater, quitAndInstall } from "./updater"
 
 // Crash + error reporting. The DSN is client-side/public by design. Only
 // enabled in packaged builds so dev runs stay out of the dashboard.
@@ -105,6 +105,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle("clipboard:read-text", () => clipboard.readText())
 
+  ipcMain.handle("update:download", () => downloadUpdate())
   ipcMain.handle("update:restart", () => quitAndInstall())
 
   ipcMain.handle("dialog:pick-folder", async () => {
