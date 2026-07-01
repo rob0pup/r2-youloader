@@ -9,6 +9,7 @@ const LINKS: { label: string; href: string; external?: boolean }[] = [
   { label: "Source on GitHub", href: REPO, external: true },
   { label: "Releases", href: `${REPO}/releases`, external: true },
   { label: "Squish", href: "https://compress.robinrahman.pro", external: true },
+  { label: "Shop", href: "https://shop.robinrahman.pro", external: true },
 ]
 
 export function SiteFooter() {
