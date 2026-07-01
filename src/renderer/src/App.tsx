@@ -53,6 +53,15 @@ type PlaylistDL = {
   folder?: string
   error?: string
 }
+type HistoryEntry = {
+  id: string
+  title: string
+  /** Format label (single video) or item count (playlist). */
+  detail: string
+  /** File path (single) or folder (playlist) to reveal. */
+  path: string
+  at: number
+}
 
 const BROWSERS: { value: CookiesBrowser; label: string }[] = [
   { value: "none", label: "None" },
@@ -89,6 +98,13 @@ function App(): React.JSX.Element {
   )
   const [cookiesFile, setCookiesFile] = useState<string | null>(null)
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
+  const [history, setHistory] = useState<HistoryEntry[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("youloader.history") || "[]")
+    } catch {
+      return []
+    }
+  })
   const [quality, setQuality] = useState<QualityPreset>(
     () => (localStorage.getItem("youloader.quality") as QualityPreset) || "best"
   )
@@ -147,6 +163,19 @@ function App(): React.JSX.Element {
   useEffect(() => {
     localStorage.setItem("youloader.downloadDir", downloadDir)
   }, [downloadDir])
+
+  useEffect(() => {
+    localStorage.setItem("youloader.history", JSON.stringify(history))
+  }, [history])
+
+  function addHistory(entry: { title: string; detail: string; path: string }) {
+    const item: HistoryEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      at: Date.now(),
+    }
+    setHistory((h) => [item, ...h].slice(0, 25))
+  }
   useEffect(() => {
     localStorage.setItem("youloader.subs", wantSubs ? "1" : "0")
   }, [wantSubs])
@@ -252,6 +281,7 @@ function App(): React.JSX.Element {
         ...d,
         [opt.formatId]: { status: "done", percent: 100, path },
       }))
+      if (path) addHistory({ title: info.title, detail: opt.label, path })
     } catch (err) {
       setDownloads((d) => ({
         ...d,
@@ -276,6 +306,12 @@ function App(): React.JSX.Element {
         ...cookieOpts,
       })
       setPl((cur) => ({ ...cur, status: "done", folder }))
+      if (folder)
+        addHistory({
+          title: "Playlist",
+          detail: `${playlist?.count ?? 0} videos`,
+          path: folder,
+        })
     } catch (err) {
       setPl((cur) => ({
         ...cur,
@@ -669,6 +705,50 @@ function App(): React.JSX.Element {
               </ol>
             </section>
           </div>
+        )}
+
+        {history.length > 0 && (
+          <section className="mt-8">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold tracking-tight">
+                Recent downloads
+              </h2>
+              <button
+                type="button"
+                onClick={() => setHistory([])}
+                className="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Clear
+              </button>
+            </div>
+            <ol className="divide-y divide-line overflow-hidden rounded-xl border border-border">
+              {history.map((h) => (
+                <li
+                  key={h.id}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate">{h.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {h.detail} ·{" "}
+                      {new Date(h.at).toLocaleString([], {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => window.youloader.showInFolder(h.path)}
+                  >
+                    Show in folder
+                  </Button>
+                </li>
+              ))}
+            </ol>
+          </section>
         )}
       </div>
 
