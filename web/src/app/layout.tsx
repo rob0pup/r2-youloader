@@ -6,6 +6,7 @@ import { GeistSans } from "geist/font/sans"
 import type { Metadata, Viewport } from "next"
 
 import { Providers } from "@/components/providers"
+import { ViewBeacon } from "@/components/view-beacon"
 
 const title = "Youloader — download YouTube videos on your PC"
 const description =
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className="min-h-svh bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
         <Analytics />
+        <ViewBeacon />
       </body>
     </html>
   )
