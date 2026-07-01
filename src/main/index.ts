@@ -1,5 +1,6 @@
 import { join } from "path"
 
+import * as Sentry from "@sentry/electron/main"
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron"
 
 import type {
@@ -15,6 +16,13 @@ import {
   resolvePlaylist,
 } from "./ytdlp"
 import { initUpdater, quitAndInstall } from "./updater"
+
+// Crash + error reporting. The DSN is client-side/public by design. Only
+// enabled in packaged builds so dev runs stay out of the dashboard.
+Sentry.init({
+  dsn: "https://b80961e25732edbffeda65032222cebc@o4511660520964096.ingest.us.sentry.io/4511660621824000",
+  enabled: app.isPackaged,
+})
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
