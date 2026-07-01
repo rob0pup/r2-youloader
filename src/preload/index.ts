@@ -81,6 +81,9 @@ const youloader = {
     return () => ipcRenderer.removeListener("update:status", listener)
   },
 
+  /** Start downloading the available update (user opted in). */
+  downloadUpdate: (): Promise<void> => ipcRenderer.invoke("update:download"),
+
   /** Restart the app to install a downloaded update. */
   restartToUpdate: (): Promise<void> => ipcRenderer.invoke("update:restart"),
 }
